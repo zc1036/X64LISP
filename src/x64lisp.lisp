@@ -12,22 +12,6 @@
 ;;; - And all the compile-time power that comes with lisp
 ;;;
 
-(defpackage :x64lisp
-  (:use :cl)
-  (:export :btype
-           :int-type
-           :ptr-type
-           :typeless-ptr
-           :struct-type
-           :union-type
-           :proc-type
-           :process-struct-decl
-           :process-proc-decl
-           :asm-module))
-
-(defpackage :x64lisp-user
-  (:use :cl))
-
 (in-package :x64lisp)
 
 ;; The base for all type classes
@@ -109,8 +93,11 @@
 (defmethod btype.equalp ((x union-type) (y union-type))
     (eq x y))
 
-(define-condition size-of-sizeless-type (error)
+(define-condition assembly-error (error)
   ((text :initarg :text :reader error.text)))
+
+(define-condition size-of-sizeless-type (error)
+  ())
 
 (defclass proc-type (btype)
   ((ret-type :initarg :ret-type
@@ -127,33 +114,93 @@
 (defmethod btype.equalp ((x proc-type) (y proc-type))
     (eq x y))
 
-(defun process-struct-field-decl (decl)
-    (destructuring-bind (member-name member-type) decl
-        `(list ',member-name ,member-type)))
-
-(defun process-struct-decl (struct-name field-decls)
-    `(defparameter ,struct-name
-       (make-instance 'struct-type
-                      :fields (list ,@(map 'list #'process-struct-field-decl field-decls))
-                      :name ,(symbol-name struct-name))))
-
 (defclass asm-module ()
   ((procs :initarg :procs
           :accessor asm-module.procs)
    (name :initarg :name
          :accessor asm-module.name)))
 
+(defclass asm-proc ()
+  ((instrs :initform (make-array 0 :adjustable t :fill-pointer 0)
+           :accessor asm-proc.instrs)
+   (name :initarg :name
+         :reader asm-proc.name)
+   (thunk :initarg :thunk
+          :reader asm-proc.thunk)))
+
 (defparameter *modules* nil)
 (defparameter *current-module* nil)
+(defparameter *current-proc* nil)
+(defparameter *is-toplevel* t)
+
+(define-condition unexpected-toplevel-form (assembly-error)
+  ())
+
+(define-condition unexpected-scoped-form (assembly-error)
+  ())
+
+(defun require-toplevel (construct-name)
+    (when (not *is-toplevel*)
+        (error 'unexpected-toplevel-form
+               :text (format "~a declarations are required to appear at global scope" construct-name))))
+
+(defun require-not-toplevel (construct-name)
+    (when *is-toplevel*
+        (error 'unexpected-scoped-form
+               :text (format "~a declarations are required to appear in local scope" construct-name))))
+
+(defun process-struct-field-decl (decl)
+    (destructuring-bind (member-name member-type) decl
+        `(list ',member-name ,member-type)))
+
+(defun process-struct-decl (struct-name field-decls)
+    `(progn
+         (require-toplevel)
+         (defparameter ,struct-name
+           (make-instance 'struct-type
+                          :fields (list ,@(map 'list #'process-struct-field-decl field-decls))
+                          :name ,(symbol-name struct-name)))))
 
 (defun process-proc-decl (proc-name args body)
-    `(defparameter ,proc-name
-       (let ((proc (lambda () ,@body)))
-           (push proc (asm-module.procs *current-module*)))))
+    (with-gensyms (proc-sym)
+        `(progn
+             (require-toplevel)
+             (defparameter ,proc-name nil)
+             (let ((,proc-sym))
+                 (setf ,proc-sym (make-instance 'asm-proc
+                                                :name ,(symbol-name proc-name)
+                                                :thunk (lambda ()
+                                                           (let ((*is-toplevel* nil)
+                                                                 (*current-proc* ,proc-sym))
+                                                               ,@body))))
+                 (setf ,proc-name ,proc-sym)
+                 (push ,proc-sym (asm-module.procs *current-module*))))))
+
+(defun load-file (filename)
+    (load filename))
+
+(defun load-files (filenames)
+    (loop for file in filenames* do
+         (load-file file)
+         (with-open-file ((concatenate 'string file ".s") :direction :output :if-exists :supersede)
+             (loop for proc in (asm-module.procs *current-module*)
+                  (funcall (asm-proc.thunk proc))
+
+                  ;; process (ASM-PROC.INSTRS PROC) here
+                  ))
+         (setf *current-module* nil)))
+
+;;; Interface exposed to the programmer
 
 (in-package :x64lisp-user)
 
 (defmacro module (module-name)
+    (x64lisp:require-toplevel "module")
+
+    (when *current-module*
+        (error 'unexpected-toplevel-form
+               :text "Duplicate 'module' declaration; only one module per file allowed"))
+
     (setf *current-module* (make-instance 'x64lisp:asm-module
                                           :procs nil
                                           :name (symbol-name module-name)))
