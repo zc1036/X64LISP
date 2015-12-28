@@ -10,6 +10,6 @@
                  (:file "functional")
                  (:file "math")
                  (:file "macro-assist")
-                 (:file "x64")
-                 (:file "x64lisp"))
+                 (:file "x64lisp")
+                 (:file "x64"))
     :depends-on (:unix-opts))

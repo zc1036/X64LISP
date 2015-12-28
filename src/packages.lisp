@@ -9,7 +9,8 @@
 
 (defpackage :functional
   (:use :cl)
-  (:export :map-accum))
+  (:export :map-accum
+           :bind))
 
 (defpackage :x64lisp
   (:use :cl :macro-assist :functional :math)
@@ -24,6 +25,8 @@
            :process-proc-decl
            :asm-module
            :require-toplevel
+
+           :asm-proc.push-instr
 
            :*asm-modules*
            :*current-module*
@@ -66,4 +69,5 @@
            :@add
            :add
 
-           :make-instr-interface))
+           :make-instr-interface
+           :make-gpregs))

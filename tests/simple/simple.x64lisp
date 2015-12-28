@@ -1,4 +1,9 @@
 
 (module foo)
 
-(proc blah ())
+(proc blah ()
+    (cli)
+    (add %r4 %r1)
+
+    (label 'foo)
+    (jne 'foo))

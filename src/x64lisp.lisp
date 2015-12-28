@@ -128,6 +128,9 @@
    (thunk :initarg :thunk
           :reader asm-proc.thunk)))
 
+(defun asm-proc.push-instr (instr proc)
+    (vector-push-extend instr (asm-proc.instrs proc)))
+
 (defparameter *asm-modules* nil)
 (defparameter *current-module* nil)
 (defparameter *current-proc* nil)
@@ -197,6 +200,8 @@
                   (funcall (asm-proc.thunk proc))
 
                   (format t "Procedure ~a~%" (asm-proc.name proc))
+
+                  (map nil (bind #'format t "~a~%") (asm-proc.instrs proc))
                   ;; process (ASM-PROC.INSTRS PROC) here
                   ))
          (setf *current-module* nil)))

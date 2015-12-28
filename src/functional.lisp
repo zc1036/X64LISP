@@ -14,3 +14,7 @@
         (multiple-value-bind (new-state list-item) (funcall f state (car list))
             (map-accum* new-state f (cdr list) (cons list-item accum)))
         (values state (nreverse accum))))
+
+(defmacro bind (func &rest args)
+    `(lambda (&rest restargs)
+         (apply ,func (append (list ,@args) restargs))))
