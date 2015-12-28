@@ -1,6 +1,8 @@
 
 ;;;; Functional utilities
 
+(in-package :functional)
+
 ;; map-accum :: init-state :: a ->
 ;;              f :: (a, b) -> (a, c),
 ;;              list :: [b] -> (a, [c])

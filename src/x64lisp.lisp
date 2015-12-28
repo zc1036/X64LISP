@@ -22,10 +22,10 @@
 (defgeneric btype.equalp (btype btype)
     (:documentation "Compares two BTYPEs for equality"))
 
-(defmethod btype.equalp (btype btype)
+(defmethod btype.equalp (a b)
+    (declare (ignore a))
+    (declare (ignore b))
     nil) ;; default implementation is to evaluate to false
-
-(defmethod btype.equalp (()))
 
 (defclass int-type (btype)
   ((size :initarg :size ; size in bytes
@@ -128,7 +128,7 @@
    (thunk :initarg :thunk
           :reader asm-proc.thunk)))
 
-(defparameter *modules* nil)
+(defparameter *asm-modules* nil)
 (defparameter *current-module* nil)
 (defparameter *current-proc* nil)
 (defparameter *is-toplevel* t)
@@ -142,12 +142,19 @@
 (defun require-toplevel (construct-name)
     (when (not *is-toplevel*)
         (error 'unexpected-toplevel-form
-               :text (format "~a declarations are required to appear at global scope" construct-name))))
+               :text (format nil "~a declarations are required to appear at global scope" construct-name))))
+
+(defun require-toplevel-module (construct-name)
+    (require-toplevel construct-name)
+
+    (when (not *current-module*)
+        (error 'unexpected-toplevel-form
+               :text (format nil "~a declarations must be preceded by a module declaration" construct-name))))
 
 (defun require-not-toplevel (construct-name)
     (when *is-toplevel*
         (error 'unexpected-scoped-form
-               :text (format "~a declarations are required to appear in local scope" construct-name))))
+               :text (format nil "~a declarations are required to appear in local scope" construct-name))))
 
 (defun process-struct-field-decl (decl)
     (destructuring-bind (member-name member-type) decl
@@ -155,16 +162,18 @@
 
 (defun process-struct-decl (struct-name field-decls)
     `(progn
-         (require-toplevel)
+         (require-toplevel-module "struct")
          (defparameter ,struct-name
            (make-instance 'struct-type
                           :fields (list ,@(map 'list #'process-struct-field-decl field-decls))
                           :name ,(symbol-name struct-name)))))
 
 (defun process-proc-decl (proc-name args body)
+    (declare (ignore args))
+    
     (with-gensyms (proc-sym)
         `(progn
-             (require-toplevel)
+             (require-toplevel-module "proc")
              (defparameter ,proc-name nil)
              (let ((,proc-sym))
                  (setf ,proc-sym (make-instance 'asm-proc
@@ -180,12 +189,14 @@
     (load filename))
 
 (defun load-files (filenames)
-    (loop for file in filenames* do
+    (loop for file in filenames do
          (load-file file)
-         (with-open-file ((concatenate 'string file ".s") :direction :output :if-exists :supersede)
-             (loop for proc in (asm-module.procs *current-module*)
+         (with-open-file (stream (concatenate 'string file ".s") :direction :output :if-exists :supersede)
+             (format stream "hi there lol")
+             (loop for proc in (asm-module.procs *current-module*) do
                   (funcall (asm-proc.thunk proc))
 
+                  (format t "Procedure ~a~%" (asm-proc.name proc))
                   ;; process (ASM-PROC.INSTRS PROC) here
                   ))
          (setf *current-module* nil)))
@@ -197,14 +208,14 @@
 (defmacro module (module-name)
     (x64lisp:require-toplevel "module")
 
-    (when *current-module*
+    (when x64lisp:*current-module*
         (error 'unexpected-toplevel-form
                :text "Duplicate 'module' declaration; only one module per file allowed"))
 
-    (setf *current-module* (make-instance 'x64lisp:asm-module
-                                          :procs nil
-                                          :name (symbol-name module-name)))
-    (push *current-module* *modules*)
+    (setf x64lisp:*current-module* (make-instance 'x64lisp:asm-module
+                                                  :procs nil
+                                                  :name (symbol-name module-name)))
+    (push x64lisp:*current-module* x64lisp:*asm-modules*)
     (values))
 
 (defparameter int8 (make-instance 'x64lisp:int-type :size 1 :signed t))
@@ -215,8 +226,6 @@
 (defparameter uint16 (make-instance 'x64lisp:int-type :size 2 :signed nil))
 (defparameter uint32 (make-instance 'x64lisp:int-type :size 4 :signed nil))
 (defparameter uint64 (make-instance 'x64lisp:int-type :size 8 :signed nil))
-
-(defparameter char uint8)
 
 (defmacro struct (struct-name &body field-decls)
     (x64lisp:process-struct-decl struct-name field-decls))

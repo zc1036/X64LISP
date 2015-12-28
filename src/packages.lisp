@@ -1,6 +1,18 @@
 
-(defpackage :x64lisp
+(defpackage :macro-assist
   (:use :cl)
+  (:export :with-gensyms))
+
+(defpackage :math
+  (:use :cl)
+  (:export :ceil-to-nearest-multiple))
+
+(defpackage :functional
+  (:use :cl)
+  (:export :map-accum))
+
+(defpackage :x64lisp
+  (:use :cl :macro-assist :functional :math)
   (:export :btype
            :int-type
            :ptr-type
@@ -10,7 +22,14 @@
            :proc-type
            :process-struct-decl
            :process-proc-decl
-           :asm-module))
+           :asm-module
+           :require-toplevel
+
+           :*asm-modules*
+           :*current-module*
+           :*current-proc*
+
+           :load-files))
 
 (defpackage :x64lisp-user
   (:use :cl))

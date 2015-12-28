@@ -25,6 +25,9 @@
 (defclass gpreg (reg)
   ())
 
+(defmethod print-object ((x instr-arg) stream)
+    (format stream "~a" (instr-arg.repr x)))
+
 (defmacro make-gpreg (name repr size &optional aliases-of)
     `(defparameter ,name (make-instance 'gpreg :name ,repr :size ,size :aliases-of ,aliases-of)))
 
@@ -178,7 +181,7 @@
         :reader binary-op.src)))
 
 (defmethod instr.repr ((x binary-op))
-    (format "~a ~a, ~a" (instr.name x) (instr-arg.repr (binary-op.dst x)) (instr-arg.repr (binary-op.src x))))
+    (format nil "~a ~a, ~a" (instr.name x) (binary-op.dst x) (binary-op.src x)))
 
 (defclass @cli (nullary-op)
   ((name :initform "cli")
@@ -186,6 +189,9 @@
 
 (defclass @add (binary-op)
   ((name :initform "add")))
+
+(defclass @mov (binary-op)
+  ((name :initform "mov")))
 
 ;; Quick way to define an instruction function that simply
 ;; instantiates an instruction class
@@ -199,3 +205,4 @@
 (x64:make-instr-interface $ mem-ref address)
 (x64:make-instr-interface cli @cli)
 (x64:make-instr-interface add @add dst src)
+(x64:make-instr-interface mov @mov dst src)
