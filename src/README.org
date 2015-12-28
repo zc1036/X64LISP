@@ -1,0 +1,8 @@
+
+* X64LISP
+
+X64LISP is a statically-typed Lisp metalanguage that compiles to x64
+assembly. It aims to be a low-level language with strong
+metaprogramming support and easy extensibility.
+
+X64LISP is being developed as part of the RBRS project.
