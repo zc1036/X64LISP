@@ -18,3 +18,9 @@
 (defmacro bind (func &rest args)
     `(lambda (&rest restargs)
          (apply ,func (append (list ,@args) restargs))))
+
+(defmacro destructuring-lambda (lambda-list &body body)
+    (with-gensyms (args-sym)
+        `(lambda (&rest ,args-sym)
+             (destructuring-bind ,lambda-list ,args-sym
+                 ,@body))))

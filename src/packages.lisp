@@ -8,9 +8,10 @@
   (:export :ceil-to-nearest-multiple))
 
 (defpackage :functional
-  (:use :cl)
+  (:use :cl :macro-assist)
   (:export :map-accum
-           :bind))
+           :bind
+           :destructuring-lambda))
 
 (defpackage :x64lisp
   (:use :cl :macro-assist :functional :math)
