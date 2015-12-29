@@ -15,37 +15,70 @@
 
 (defpackage :x64lisp
   (:use :cl :macro-assist :functional :math)
-  (:export :btype
-           :int-type
-           :ptr-type
-           :typeless-ptr
-           :struct-type
-           :union-type
-           :proc-type
-           :process-struct-decl
-           :process-proc-decl
-           :asm-module
-           :require-toplevel
+  (:export :require-toplevel
+           :require-toplevel-module
+           :require-not-toplevel
 
+           :asm-proc
            :asm-proc.push-instr
+           :asm-proc.instrs
+
+           :asm-module
+           :asm-module.procs
+           :asm-module.name
 
            :*asm-modules*
            :*current-module*
            :*current-proc*
+           :*is-toplevel*
 
            :load-files))
 
-(defpackage :x64lisp-user
-  (:use :cl))
+(defpackage :types
+  (:use :cl :macro-assist :functional :math)
+  (:export :btype.equalp
+           :btype.alignment
+           :btype.size
 
-(defpackage :x64
+           :void-type
+           :int-type.signed
+           :ptr-type.pointee-type
+           :array-type.element-type
+           :array-type.element-count
+           :struct-type.fields
+           :struct-type.name
+           :struct-type.size-and-field-offsets
+           :union-type.fields
+           :proc-type.ret-type
+           :proc-type.arg-types
+
+           :void
+           :int8
+           :int16
+           :int32
+           :int64
+           :uint8
+           :uint16
+           :uint32
+           :uint64))
+
+(defpackage :core-forms
+  (:use :cl :macro-assist :x64lisp)
+  (:export :module
+           :struct
+           :proc))
+
+(defpackage :ast
   (:use :cl :macro-assist)
-  (:export :reg
-           :gpreg
-           :instr-arg
-           :instr
+  (:export :ast-expr))
 
-           :%r0 :%r1 :%r2 :%r3 :%r4 :%r5 :%r6 :%r7 :%r8 :%r9 :%r10 :%r11 :%r12
+(defpackage :cfg
+  (:use :cl :x64lisp))
+
+(defpackage :instructions
+  (:use :cl :macro-assist :ast)
+  (:import-from :types :void)
+  (:export :%r0 :%r1 :%r2 :%r3 :%r4 :%r5 :%r6 :%r7 :%r8 :%r9 :%r10 :%r11 :%r12
            :%r13 :%r14 :%r15
 
            :%r0L :%r1L :%r2L :%r3L :%r4L :%r5L :%r6L :%r7L
@@ -63,12 +96,12 @@
            :%ah :%bh :%ch :%dh :%bph :%sph :%sih :%dih
            :%al :%bl :%cl :%dl :%bpl :%spl :%sil :%dil
 
-           :mem-ref
-
-           :@cli
            :cli
-           :@add
            :add
+           :move
+           :label
+           :jmp
+           :jne))
 
-           :make-instr-interface
-           :make-gpregs))
+(defpackage :x64lisp-user
+  (:use :cl :core-forms :types :instructions))

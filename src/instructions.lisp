@@ -2,7 +2,7 @@
 ;;;; Defines the instructions and structures that comprise an x64
 ;;;; assembly program
 
-(in-package :x64)
+(in-package :instructions)
 
 (defclass instr-arg ()
   ((repr :initarg :repr
@@ -45,7 +45,8 @@
   ((name :initarg :name
          :reader instr.name)
    (repr :initarg :repr
-         :reader instr.repr)))
+         :reader instr.repr)
+   (type :initform void)))
 
 (defmethod print-object ((x instr) stream)
     (princ (instr.repr x) stream))
@@ -100,18 +101,15 @@
 ;; Quick way to define an instruction function that simply
 ;; instantiates an instruction class
 (defmacro make-instr-interface (name class &rest lambda-list)
-    (with-gensyms (instr-sym)
-        ;; the below MAPCAR takes a list (a b c) and turns it into (:a a :b b :c c)
-        (let ((ctor-args (apply #'append (mapcar (lambda (x) (list (intern (symbol-name x) :keyword) x)) lambda-list))))
-            `(defun ,name ,lambda-list
-                 (make-instance (intern ,(symbol-name class) :x64) ,@ctor-args)))))
-
-(in-package :x64lisp-user)
+    ;; the below MAPCAR takes a list (a b c) and turns it into (:a a :b b :c c)
+    (let ((ctor-args (apply #'append (mapcar (lambda (x) (list (intern (symbol-name x) :keyword) x)) lambda-list))))
+        `(defun ,name ,lambda-list
+             (make-instance (intern ,(symbol-name class) :instructions) ,@ctor-args))))
 
 ;;;
 ;;; x86 registers and their 64-bit aliases
 ;;;
-(x64:make-gpregs
+(make-gpregs
  ;; the "true" registers
  (%r0 "r0" 8) (%r1 "r1" 8) (%r2  "r2" 8)  (%r3  "r3" 8)  (%r4  "r4" 8)  (%r5  "r5" 8)  (%r6  "r6" 8)  (%r7  "r7" 8)
  (%r8 "r8" 8) (%r9 "r9" 8) (%r10 "r10" 8) (%r11 "r11" 8) (%r12 "r12" 8) (%r13 "r13" 8) (%r14 "r14" 8) (%r15 "r15" 8)
@@ -150,11 +148,11 @@
  (%r8D "r8D" 4 `(,%r8 0 4)) (%r9D "r9D" 4 `(,%r9 0 4)) (%r10D "r10D" 4 `(,%r10 0 4)) (%r11D "r11D" 4 `(,%r11 0 4))
  (%r12D "r12D" 4 `(,%r14 0 4)) (%r13D "r13D" 4 `(,%r13 0 4)) (%r14D "r14D" 4 `(,%r14 0 4)) (%r15D "r15D" 4 `(,%r15 0 4)))
 
-(x64:make-instr-interface $ mem-ref address)
-(x64:make-instr-interface cli @cli)
-(x64:make-instr-interface add @add dst src)
-(x64:make-instr-interface mov @mov dst src)
+(make-instr-interface $ mem-ref address)
+(make-instr-interface cli @cli)
+(make-instr-interface add @add dst src)
+(make-instr-interface mov @mov dst src)
 
-(x64:make-instr-interface label @label name)
-(x64:make-instr-interface jmp @jmp op)
-(x64:make-instr-interface jne @jne op)
+(make-instr-interface label @label name)
+(make-instr-interface jmp @jmp op)
+(make-instr-interface jne @jne op)
