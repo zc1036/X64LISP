@@ -2,7 +2,6 @@
 (require :asdf)
 
 (asdf:load-system :x64lisp)
-;(asdf:load-system :unix-opts)
 
 (opts:define-opts)
 
