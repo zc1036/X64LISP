@@ -34,7 +34,11 @@
   ((size :initarg :size ; size in bytes
          :reader btype.size)
    (signed :initarg :signed
-           :reader int-type.signed)))
+           :reader int-type.signed)
+   ;; For testing whether lisp integers can be represented by this
+   ;; integer type class
+   (lisp-typespec :initarg :lisp-typespec
+                  :reader int-type.lisp-typespec)))
 
 (defmethod btype.alignment ((x int-type))
     (btype.size x))
@@ -132,13 +136,21 @@
                  (mapcar #'list (proc-type.arg-types x) (proc-type.arg-types y)) ; (a b) -> (c d) -> ((a c) (b d))
                  :initial-value t)))
 
-(defparameter int8 (make-instance 'int-type :size 1 :signed t))
-(defparameter int16 (make-instance 'int-type :size 2 :signed t))
-(defparameter int32 (make-instance 'int-type :size 4 :signed t))
-(defparameter int64 (make-instance 'int-type :size 8 :signed t))
-(defparameter uint8 (make-instance 'int-type :size 1 :signed nil))
-(defparameter uint16 (make-instance 'int-type :size 2 :signed nil))
-(defparameter uint32 (make-instance 'int-type :size 4 :signed nil))
-(defparameter uint64 (make-instance 'int-type :size 8 :signed nil))
+(define-condition type-error (assembly-error)
+  ())
+
+(defun bits-typespec (num-bits signedp)
+    (if signedp
+        `(integer ,(- (expt 2 (1- num-bits))) ,(1- (expt 2 (1- num-bits))))
+        `(integer 0 ,(1- (expt 2 num-bits)))))
+
+(defparameter int8 (make-instance 'int-type :size 1 :signed t :lisp-typespec (bits-typespec 8 t)))
+(defparameter int16 (make-instance 'int-type :size 2 :signed t :lisp-typespec (bits-typespec 16 t)))
+(defparameter int32 (make-instance 'int-type :size 4 :signed t :lisp-typespec (bits-typespec 32 t)))
+(defparameter int64 (make-instance 'int-type :size 8 :signed t :lisp-typespec (bits-typespec 64 t)))
+(defparameter uint8 (make-instance 'int-type :size 1 :signed nil :lisp-typespec (bits-typespec 8 nil)))
+(defparameter uint16 (make-instance 'int-type :size 2 :signed nil :lisp-typespec (bits-typespec 16 nil)))
+(defparameter uint32 (make-instance 'int-type :size 4 :signed nil :lisp-typespec (bits-typespec 32 nil)))
+(defparameter uint64 (make-instance 'int-type :size 8 :signed nil :lisp-typespec (bits-typespec 64 nil)))
 
 (defparameter void (make-instance 'void-type))

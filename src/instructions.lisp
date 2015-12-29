@@ -48,6 +48,8 @@
          :reader instr.repr)
    (type :initform void)))
 
+(defmethod ast-expr.to-instructions ((x instr)) x)
+
 (defmethod print-object ((x instr) stream)
     (princ (instr.repr x) stream))
 

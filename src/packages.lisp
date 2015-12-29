@@ -27,6 +27,12 @@
            :asm-module.procs
            :asm-module.name
 
+           :assembly-error
+           :size-of-sizeless-type
+           :alignment-of-sizeless-type
+           :unexpected-toplevel-form
+           :unexpected-scoped-form
+
            :*asm-modules*
            :*current-module*
            :*current-proc*
@@ -35,22 +41,30 @@
            :load-files))
 
 (defpackage :types
-  (:use :cl :macro-assist :functional :math)
+  (:use :cl :macro-assist :functional :math :x64lisp)
   (:export :btype.equalp
            :btype.alignment
            :btype.size
 
            :void-type
+           :int-type
            :int-type.signed
            :ptr-type.pointee-type
+           :array-type
            :array-type.element-type
            :array-type.element-count
+           :struct-type
            :struct-type.fields
            :struct-type.name
            :struct-type.size-and-field-offsets
+           :union-type
            :union-type.fields
+           :proc-type
            :proc-type.ret-type
            :proc-type.arg-types
+
+           :type-assert
+           :type-error
 
            :void
            :int8
@@ -62,18 +76,21 @@
            :uint32
            :uint64))
 
+(defpackage :ast
+  (:use :cl :macro-assist :functional)
+  (:import-from :types :void)
+  (:export :ast-expr
+           :defstatement))
+
 (defpackage :core-forms
-  (:use :cl :macro-assist :x64lisp)
+  (:use :cl :macro-assist :x64lisp :types)
   (:export :module
            :struct
-           :proc))
-
-(defpackage :ast
-  (:use :cl :macro-assist)
-  (:export :ast-expr))
+           :proc
+           :ast))
 
 (defpackage :cfg
-  (:use :cl :x64lisp))
+  (:use :cl :x64lisp :macro-assist))
 
 (defpackage :instructions
   (:use :cl :macro-assist :ast)

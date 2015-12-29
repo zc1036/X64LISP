@@ -9,7 +9,7 @@
 
 (defun process-struct-decl (struct-name field-decls)
     `(progn
-         (require-toplevel-module "struct")
+         (require-toplevel-module :struct)
          (defparameter ,struct-name
            (make-instance 'struct-type
                           :fields (list ,@(map 'list #'process-struct-field-decl field-decls))
@@ -20,7 +20,7 @@
     
     (with-gensyms (proc-sym)
         `(progn
-             (require-toplevel-module "proc")
+             (require-toplevel-module :proc)
              (defparameter ,proc-name nil)
              (let ((,proc-sym))
                  (setf ,proc-sym (make-instance 'asm-proc
@@ -33,7 +33,7 @@
                  (push ,proc-sym (asm-module.procs *current-module*))))))
 
 (defmacro module (module-name)
-    (require-toplevel "module")
+    (require-toplevel :module)
 
     (when *current-module*
         (error 'unexpected-toplevel-form
@@ -50,3 +50,8 @@
 
 (defmacro proc (proc-name args &body body)
     (process-proc-decl proc-name args body))
+
+(defstatement while (condition &body body)
+    (require-toplevel-module :while)
+
+    )

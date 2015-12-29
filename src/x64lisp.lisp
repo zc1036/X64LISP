@@ -17,10 +17,10 @@
 (define-condition assembly-error (error)
   ((text :initarg :text :reader error.text)))
 
-(define-condition size-of-sizeless-type (error)
+(define-condition size-of-sizeless-type (assembly-error)
   ())
 
-(define-condition alignment-of-sizeless-type (error)
+(define-condition alignment-of-sizeless-type (assembly-error)
   ())
 
 (defclass asm-module ()
