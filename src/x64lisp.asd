@@ -7,9 +7,9 @@
     :author "Zach"
     :licence "RBRSPL 1"
     :components ((:file "packages")
+                 (:file "macro-assist")
                  (:file "functional")
                  (:file "math")
-                 (:file "macro-assist")
                  (:file "x64lisp")
                  (:file "x64"))
     :depends-on (:unix-opts))

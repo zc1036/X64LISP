@@ -39,7 +39,7 @@
   (:use :cl))
 
 (defpackage :x64
-  (:use :cl)
+  (:use :cl :macro-assist)
   (:export :reg
            :gpreg
            :instr-arg
