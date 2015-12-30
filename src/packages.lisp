@@ -11,7 +11,8 @@
   (:use :cl :macro-assist)
   (:export :map-accum
            :bind
-           :destructuring-lambda))
+           :destructuring-lambda
+           :flatten))
 
 (defpackage :x64lisp
   (:use :cl :macro-assist :functional :math)
@@ -28,6 +29,7 @@
            :asm-module.name
 
            :assembly-error
+           :assembly-error.text
            :size-of-sizeless-type
            :alignment-of-sizeless-type
            :unexpected-toplevel-form
@@ -49,6 +51,7 @@
            :void-type
            :int-type
            :int-type.signed
+           :int-type.lisp-typespec
            :ptr-type.pointee-type
            :array-type
            :array-type.element-type
@@ -64,7 +67,7 @@
            :proc-type.arg-types
 
            :type-assert
-           :type-error
+           :asm-type-error
 
            :void
            :int8
@@ -74,27 +77,34 @@
            :uint8
            :uint16
            :uint32
-           :uint64))
+           :uint64
+           :integral-types))
 
 (defpackage :ast
   (:use :cl :macro-assist :functional)
-  (:import-from :types :void)
+  (:import-from :types
+                :void
+                :integral-types
+                :int-type.lisp-typespec
+                :asm-type-error)
   (:export :ast-expr
+           :ast-expr.to-instructions
+           :ast-expr.type
            :defstatement))
 
 (defpackage :core-forms
-  (:use :cl :macro-assist :x64lisp :types)
+  (:use :cl :macro-assist :x64lisp :types :ast)
   (:export :module
            :struct
            :proc
-           :ast))
+           :while))
 
 (defpackage :cfg
   (:use :cl :x64lisp :macro-assist))
 
 (defpackage :instructions
   (:use :cl :macro-assist :ast)
-  (:import-from :types :void)
+  (:import-from :types :void :uint8 :uint16 :uint32 :uint64)
   (:export :%r0 :%r1 :%r2 :%r3 :%r4 :%r5 :%r6 :%r7 :%r8 :%r9 :%r10 :%r11 :%r12
            :%r13 :%r14 :%r15
 
@@ -121,4 +131,4 @@
            :jne))
 
 (defpackage :x64lisp-user
-  (:use :cl :core-forms :types :instructions))
+  (:use :types :core-forms :instructions))

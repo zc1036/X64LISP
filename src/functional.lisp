@@ -24,3 +24,15 @@
         `(lambda (&rest ,args-sym)
              (destructuring-bind ,lambda-list ,args-sym
                  ,@body))))
+
+(defun flatten (list &optional accum resume)
+    "Tail-recursive list flatten; removes NILs."
+    (declare (optimize (debug 0) (safety 0) (speed 3)))
+    (if list
+        (ctypecase (car list)
+          (null (flatten (cdr list) accum resume))
+          (atom (flatten (cdr list) (cons (car list) accum) resume))
+          (cons (flatten (car list) accum (cons (cdr list) resume))))
+        (if resume
+            (flatten (car resume) accum (cdr resume))
+            (reverse accum))))

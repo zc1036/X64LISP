@@ -15,7 +15,7 @@
 (in-package :x64lisp)
 
 (define-condition assembly-error (error)
-  ((text :initarg :text :reader error.text)))
+  ((text :initarg :text :reader assembly-error.text)))
 
 (define-condition size-of-sizeless-type (assembly-error)
   ())
@@ -30,7 +30,7 @@
          :accessor asm-module.name)))
 
 (defclass asm-proc ()
-  ((toplevel-forms :initform (make-array 0 :adjustable t :fill-pointer 0)
+  ((toplevel-forms :initform nil
                    :accessor asm-proc.toplevel-forms)
    (instrs :initform (make-array 0 :adjustable t :fill-pointer 0)
            :accessor asm-proc.instrs)
@@ -41,9 +41,6 @@
 
 (defun asm-proc.push-instr (instr proc)
     (vector-push-extend instr (asm-proc.instrs proc)))
-
-(defun asm-proc.push-form (form proc)
-    (vector-push-extend form (asm-proc.toplevel-forms proc)))
 
 (defparameter *asm-modules* nil)
 (defparameter *current-module* nil)
@@ -80,13 +77,15 @@
     (loop for file in filenames do
          (load-file file)
          (with-open-file (stream (concatenate 'string file ".s") :direction :output :if-exists :supersede)
-             (format stream "hi there lol")
              (loop for proc in (asm-module.procs *current-module*) do
-                  (funcall (asm-proc.thunk proc))
+                  (with-slots (toplevel-forms instrs name thunk) proc
+                      (setf toplevel-forms (funcall thunk))
+                      (setf instrs (flatten (mapcar #'ast:ast-expr.to-instructions toplevel-forms)))
 
-                  (format t "Procedure ~a~%" (asm-proc.name proc))
+                      (format t "Procedure ~a~%" name)
+                      (format t "Procedure expressions: ~a~%" toplevel-forms)
 
-                  (map nil (bind #'format t "~a~%") (asm-proc.instrs proc))
+                      (map nil (bind #'format t "~a~%") instrs))
                   ;; process (ASM-PROC.INSTRS PROC) here
                   ))
          (setf *current-module* nil)))

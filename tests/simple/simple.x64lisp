@@ -5,5 +5,8 @@
     (cli)
     (add %r4 %r1)
 
+    (while %r4
+        (add %r4 1))
+
     (label 'foo)
     (jne 'foo))

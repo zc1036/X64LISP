@@ -136,8 +136,14 @@
                  (mapcar #'list (proc-type.arg-types x) (proc-type.arg-types y)) ; (a b) -> (c d) -> ((a c) (b d))
                  :initial-value t)))
 
-(define-condition type-error (assembly-error)
+(define-condition asm-type-error (assembly-error)
   ())
+
+(defun type-assert (object type)
+    "OBJECT is EXPRESSION-LIKE, and TYPE is either an instance or subclass of BTYPE"
+    (unless (or (btype.equalp object type) (typep object type))
+         (error 'asm-type-error
+                :text (format nil "Type mismatch: got ~a, expected ~a" object type))))
 
 (defun bits-typespec (num-bits signedp)
     (if signedp
@@ -152,5 +158,9 @@
 (defparameter uint16 (make-instance 'int-type :size 2 :signed nil :lisp-typespec (bits-typespec 16 nil)))
 (defparameter uint32 (make-instance 'int-type :size 4 :signed nil :lisp-typespec (bits-typespec 32 nil)))
 (defparameter uint64 (make-instance 'int-type :size 8 :signed nil :lisp-typespec (bits-typespec 64 nil)))
+
+;; A list of the integral types
+(defparameter integral-types
+  (list int8 int16 int32 int64 uint8 uint16 uint32 uint64))
 
 (defparameter void (make-instance 'void-type))

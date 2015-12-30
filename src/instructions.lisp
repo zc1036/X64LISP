@@ -23,14 +23,19 @@
              :reader reg.alias-of)
    (repr :initarg :name)))
 
-(defclass gpreg (reg)
+(defclass gpreg (reg ast-expr)
   ())
 
 (defmethod print-object ((x instr-arg) stream)
     (princ (instr-arg.repr x) stream))
 
 (defmacro make-gpreg (name repr size &optional alias-of)
-    `(defparameter ,name (make-instance 'gpreg :name ,repr :size ,size :alias-of ,alias-of)))
+    (let ((type (ccase size
+                  (1 'uint8)
+                  (2 'uint16)
+                  (4 'uint32)
+                  (8 'uint64))))
+        `(defparameter ,name (make-instance 'gpreg :name ,repr :size ,size :type ,type :alias-of ,alias-of))))
 
 (defmacro make-gpregs (&rest lists)
     `(progn

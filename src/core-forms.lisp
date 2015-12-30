@@ -28,7 +28,7 @@
                                                 :thunk (lambda ()
                                                            (let ((*is-toplevel* nil)
                                                                  (*current-proc* ,proc-sym))
-                                                               ,@body))))
+                                                               (list ,@body)))))
                  (setf ,proc-name ,proc-sym)
                  (push ,proc-sym (asm-module.procs *current-module*))))))
 
@@ -40,8 +40,8 @@
                :text "Duplicate 'module' declaration; only one module per file allowed"))
 
     (setf *current-module* (make-instance 'asm-module
-                                                  :procs nil
-                                                  :name (symbol-name module-name)))
+                                          :procs nil
+                                          :name (symbol-name module-name)))
     (push *current-module* *asm-modules*)
     (values))
 
@@ -54,4 +54,6 @@
 (defstatement while (condition &body body)
     (require-toplevel-module :while)
 
-    )
+    (type-assert (ast-expr.type condition) 'int-type)
+
+    body)

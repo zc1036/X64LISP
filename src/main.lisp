@@ -9,4 +9,7 @@
     (declare (ignore opts))
 
     (let ((*package* (find-package :x64lisp-user)))
-        (x64lisp:load-files args)))
+        (handler-case (x64lisp:load-files args)
+          (x64lisp:assembly-error (e) (format *error-output*
+                                              "Error assembling file: ~a~%"
+                                              (x64lisp:assembly-error.text e))))))
