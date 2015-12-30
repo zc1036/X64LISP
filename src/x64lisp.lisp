@@ -15,7 +15,21 @@
 (in-package :x64lisp)
 
 (define-condition assembly-error (error)
-  ((text :initarg :text :reader assembly-error.text)))
+  ((text :initarg :text :reader assembly-error.text)
+   (backtrace-reports :initform nil
+                      :accessor assembly-error.backtrace-reports)))
+
+(defstruct (backtrace-report (:conc-name backtrace-report.))
+  form-name)
+
+(defmacro with-backtrace-guard (name &body body)
+    (with-gensyms (e-sym)
+        `(handler-case (progn ,@body)
+           (assembly-error (,e-sym)
+               ;; tack on our own backtrace info to the condition object
+               (push (make-backtrace-report :form-name ,name) (assembly-error.backtrace-reports ,e-sym))
+               ;; propagate the error upwards
+               (error ,e-sym)))))
 
 (define-condition size-of-sizeless-type (assembly-error)
   ())

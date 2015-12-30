@@ -5,7 +5,7 @@
     (cli)
     (add %r4 %r1)
 
-    (while %r4
+    (while 5
         (add %r4 1))
 
     (label 'foo)

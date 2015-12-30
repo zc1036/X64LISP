@@ -22,13 +22,19 @@
         `(progn
              (require-toplevel-module :proc)
              (defparameter ,proc-name nil)
+             (defun ,proc-name (&rest args)
+                 (apply ,proc-name args))
+             ;; We separate the declarations and the assignment so
+             ;; that the compiler is aware of the existence of the
+             ;; symbols and doesn't give false warnings
              (let ((,proc-sym))
                  (setf ,proc-sym (make-instance 'asm-proc
                                                 :name ,(symbol-name proc-name)
                                                 :thunk (lambda ()
                                                            (let ((*is-toplevel* nil)
                                                                  (*current-proc* ,proc-sym))
-                                                               (list ,@body)))))
+                                                               (with-backtrace-guard (format nil "procedure ~a" ',proc-name)
+                                                                   (list ,@body))))))
                  (setf ,proc-name ,proc-sym)
                  (push ,proc-sym (asm-module.procs *current-module*))))))
 
@@ -52,8 +58,9 @@
     (process-proc-decl proc-name args body))
 
 (defstatement while (condition &body body)
-    (require-toplevel-module :while)
+    (with-backtrace-guard :while
+        (require-toplevel-module :while)
 
-    (type-assert (ast-expr.type condition) 'int-type)
+        (type-assert (ast-expr.type condition) 'int-type)
 
-    body)
+        body))

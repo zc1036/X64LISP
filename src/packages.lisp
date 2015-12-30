@@ -30,6 +30,10 @@
 
            :assembly-error
            :assembly-error.text
+           :assembly-error.backtrace-reports
+           :with-backtrace-guard
+           :make-backtrace-report
+           :backtrace-report.form-name
            :size-of-sizeless-type
            :alignment-of-sizeless-type
            :unexpected-toplevel-form

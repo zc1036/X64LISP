@@ -15,5 +15,4 @@
                  (:file "types")
                  (:file "ast")
                  (:file "instructions")
-                 (:file "core-forms"))
-    :depends-on (:unix-opts))
+                 (:file "core-forms")))
