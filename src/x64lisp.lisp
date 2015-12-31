@@ -44,17 +44,12 @@
          :accessor asm-module.name)))
 
 (defclass asm-proc ()
-  ((toplevel-forms :initform nil
-                   :accessor asm-proc.toplevel-forms)
-   (instrs :initform (make-array 0 :adjustable t :fill-pointer 0)
+  ((instrs :initform (make-array 0 :adjustable t :fill-pointer 0)
            :accessor asm-proc.instrs)
    (name :initarg :name
          :reader asm-proc.name)
    (thunk :initarg :thunk
           :reader asm-proc.thunk)))
-
-(defun asm-proc.push-instr (instr proc)
-    (vector-push-extend instr (asm-proc.instrs proc)))
 
 (defparameter *asm-modules* nil)
 (defparameter *current-module* nil)
@@ -79,27 +74,26 @@
         (error 'unexpected-toplevel-form
                :text (format nil "~a declarations must be preceded by a module declaration" construct-name))))
 
-(defun require-not-toplevel (construct-name)
-    (when *is-toplevel*
+(defun require-procedure (construct-name)
+    (unless (and (not *is-toplevel*) *current-proc*)
         (error 'unexpected-scoped-form
-               :text (format nil "~a declarations are required to appear in local scope" construct-name))))
+               :text (format nil "~a declarations are required to appear in procedure scope" construct-name))))
 
 (defun load-file (filename)
     (load filename))
 
 (defun load-files (filenames)
-    (loop for file in filenames do
-         (load-file file)
-         (with-open-file (stream (concatenate 'string file ".s") :direction :output :if-exists :supersede)
-             (loop for proc in (asm-module.procs *current-module*) do
-                  (with-slots (toplevel-forms instrs name thunk) proc
-                      (setf toplevel-forms (funcall thunk))
-                      (setf instrs (flatten (mapcar #'ast:ast-expr.to-instructions toplevel-forms)))
+    (loop for filename in filenames do
+         (with-backtrace-guard (format nil "file ~a" filename)
+             (load-file filename)
+             (with-open-file (stream (concatenate 'string filename ".s") :direction :output :if-exists :supersede)
+                 (loop for proc in (asm-module.procs *current-module*) do
+                      (with-slots (instrs name thunk) proc
+                          (setf instrs (funcall thunk))
 
-                      (format t "Procedure ~a~%" name)
-                      (format t "Procedure expressions: ~a~%" toplevel-forms)
+                          (format t "Procedure ~a instructions:~%" name)
 
-                      (map nil (bind #'format t "~a~%") instrs))
-                  ;; process (ASM-PROC.INSTRS PROC) here
-                  ))
-         (setf *current-module* nil)))
+                          (map nil (bind #'format t "    ~a~%") instrs))
+                    ;; process (ASM-PROC.INSTRS PROC) here
+                      ))
+             (setf *current-module* nil))))
