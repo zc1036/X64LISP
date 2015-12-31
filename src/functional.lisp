@@ -3,17 +3,19 @@
 
 (in-package :functional)
 
-;; map-accum :: init-state :: a ->
-;;              f :: (a, b) -> (a, c),
-;;              list :: [b] -> (a, [c])
-(defun map-accum (init-state f list)
-    (map-accum* init-state f list nil))
-
 (defun map-accum* (state f list accum)
     (if list
         (multiple-value-bind (new-state list-item) (funcall f state (car list))
             (map-accum* new-state f (cdr list) (cons list-item accum)))
         (values state (nreverse accum))))
+
+;; map-accum :: init-state :: a ->
+;;              f :: (a, b) -> (a, c),
+;;              list :: [b] -> (a, [c])
+(defun map-accum (init-state f list)
+    (map-accum* init-state f list (list)))
+
+(defun id (&rest args) (apply #'values args))
 
 (defmacro bind (func &rest args)
     `(lambda (&rest restargs)
@@ -27,7 +29,7 @@
 
 (defun flatten (list &optional accum resume)
     "Tail-recursive list flatten; removes NILs."
-    (declare (optimize (debug 0) (safety 0) (speed 3)))
+    (declare (optimize (debug 1) (safety 1) (speed 3)))
     (if list
         (ctypecase (car list)
           (null (flatten (cdr list) accum resume))
@@ -36,3 +38,14 @@
         (if resume
             (flatten (car resume) accum (cdr resume))
             (reverse accum))))
+
+(defun compose* (funcs carry)
+    (if funcs
+        (let ((func (car funcs)))
+            (compose* (cdr funcs)
+                      (lambda (&rest args)
+                          (apply carry (multiple-value-list (apply func args))))))
+        carry))
+
+(defun compose (&rest funcs)
+    (compose* funcs #'id))

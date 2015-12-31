@@ -105,6 +105,9 @@
 (defclass @jne (foc-op)
   ((name :initform "jne")))
 
+(defclass @tst (unary-op)
+  ((name :initform "tst")))
+
 ;; Quick way to define an instruction function that simply
 ;; instantiates an instruction class
 (defmacro make-instr-interface (name class &rest lambda-list)
@@ -159,6 +162,7 @@
 (make-instr-interface cli @cli)
 (make-instr-interface add @add dst src)
 (make-instr-interface mov @mov dst src)
+(make-instr-interface tst @tst op)
 
 (make-instr-interface label @label name)
 (make-instr-interface jmp @jmp op)

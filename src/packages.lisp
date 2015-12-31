@@ -12,13 +12,15 @@
   (:export :map-accum
            :bind
            :destructuring-lambda
-           :flatten))
+           :flatten
+           :id
+           :compose))
 
 (defpackage :x64lisp
   (:use :cl :macro-assist :functional :math)
   (:export :require-toplevel
            :require-toplevel-module
-           :require-not-toplevel
+           :require-procedure
 
            :asm-proc
            :asm-proc.push-instr
@@ -97,7 +99,7 @@
            :defstatement))
 
 (defpackage :core-forms
-  (:use :cl :macro-assist :x64lisp :types :ast)
+  (:use :cl :macro-assist :functional :x64lisp :types :ast)
   (:export :module
            :struct
            :proc
