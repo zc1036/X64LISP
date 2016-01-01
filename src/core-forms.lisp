@@ -36,7 +36,7 @@
                                              (let ((*is-toplevel* nil)
                                                    (*current-proc* ,proc-sym))
                                                  (with-backtrace-guard (format nil "procedure ~a" ',proc-name)
-                                                     (mapcar #'ast-expr.to-instructions (list ,@body)))))))
+                                                     (ast-expr.to-instructions (list ,@body)))))))
                  (setf ,proc-name ,proc-sym)
                  (push ,proc-sym (asm-module.procs *current-module*))))))
 
@@ -65,4 +65,12 @@
 
         (type-assert (ast-expr.type condition) 'int-type)
 
-        body))
+        (multiple-value-bind (cond-instrs cond-reg) (ast-expr.to-instructions condition)
+            (with-labels ((!while-test "Test while condition") (!while-end "End while-loop"))
+                (list !while-test
+                      cond-instrs
+                      (tst cond-reg)
+                      (jz !while-end)
+                      (ast-expr.to-instructions body)
+                      (jmp !while-test)
+                      !while-end)))))

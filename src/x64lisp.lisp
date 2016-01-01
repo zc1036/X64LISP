@@ -44,8 +44,7 @@
          :accessor asm-module.name)))
 
 (defclass asm-proc ()
-  ((instrs :initform (make-array 0 :adjustable t :fill-pointer 0)
-           :accessor asm-proc.instrs)
+  ((instrs :accessor asm-proc.instrs)
    (name :initarg :name
          :reader asm-proc.name)
    (thunk :initarg :thunk
@@ -89,7 +88,7 @@
              (with-open-file (stream (concatenate 'string filename ".s") :direction :output :if-exists :supersede)
                  (loop for proc in (asm-module.procs *current-module*) do
                       (with-slots (instrs name thunk) proc
-                          (setf instrs (funcall thunk))
+                          (setf instrs (flatten (funcall thunk)))
 
                           (format t "Procedure ~a instructions:~%" name)
 

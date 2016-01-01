@@ -98,20 +98,21 @@
            :ast-expr.type
            :defstatement))
 
-(defpackage :core-forms
-  (:use :cl :macro-assist :functional :x64lisp :types :ast)
-  (:export :module
-           :struct
-           :proc
-           :while))
-
 (defpackage :cfg
   (:use :cl :x64lisp :macro-assist))
 
 (defpackage :instructions
   (:use :cl :macro-assist :ast)
   (:import-from :types :void :uint8 :uint16 :uint32 :uint64)
-  (:export :%r0 :%r1 :%r2 :%r3 :%r4 :%r5 :%r6 :%r7 :%r8 :%r9 :%r10 :%r11 :%r12
+  (:export :instr-arg
+           :reg
+           :vreg
+           :new-vreg
+           :gpreg
+
+           :with-labels
+
+           :%r0 :%r1 :%r2 :%r3 :%r4 :%r5 :%r6 :%r7 :%r8 :%r9 :%r10 :%r11 :%r12
            :%r13 :%r14 :%r15
 
            :%r0L :%r1L :%r2L :%r3L :%r4L :%r5L :%r6L :%r7L
@@ -129,12 +130,14 @@
            :%ah :%bh :%ch :%dh :%bph :%sph :%sih :%dih
            :%al :%bl :%cl :%dl :%bpl :%spl :%sil :%dil
 
-           :cli
-           :add
-           :move
-           :label
-           :jmp
-           :jne))
+           :cli :add :mov :tst :label :jmp :jne :jz))
+
+(defpackage :core-forms
+  (:use :cl :macro-assist :functional :x64lisp :types :ast :instructions)
+  (:export :module
+           :struct
+           :proc
+           :while))
 
 (defpackage :x64lisp-user
   (:use :types :core-forms :instructions))

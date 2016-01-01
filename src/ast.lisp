@@ -19,12 +19,38 @@
 ;; instructions.lisp); for other types, it must return a list of
 ;; INSTR.
 (defgeneric ast-expr.to-instructions (ast-expr)
-    (:documentation "Converts an AST expression to instructions"))
+    (:documentation
+"Takes an AST expression and returns two values, (1) a list of
+instructions to compute the expression and (2) the register in which
+the computed value of the expression is stored.
+
+If the type of the expression is VOID, then (2) is NIL.
+
+A list of expressions is taken to mean a compound expression of type
+VOID, and therefore the return values in this case are (1) a possibly
+nested list of instructions and (2) NIL."))
+
+(defmethod ast-expr.to-instructions ((l list))
+    (values (mapcar #'ast-expr.to-instructions l)
+            nil))
+
+(defmethod ast-expr.to-instructions ((x integer))
+    (let ((reg (instructions:new-vreg)))
+        (values (instructions:mov reg x)
+                reg)))
 
 (deftype expression-like ()
     '(or ast-expr integer))
 
 (defmacro defstatement (name lambda-list &body body)
+    "Creates a new statement with the given NAME.
+
+    This defines a macro called NAME and a class called
+    STATEMENT-CLASS.[NAME], which class is instantiated upon
+    invocation of the macro. The AST-EXPR.TO-INSTRUCTIONS method of
+    the class will invoke the body of the DEFSTATEMENT form with the
+    evaluated arguments given to the macro (the arguments are only
+    evaluated at that time)."
     (assert (typep name 'symbol))
 
     (with-gensyms (instr-sym args-sym)
@@ -40,5 +66,9 @@
                      `(make-instance ,'',class-name
                                      ;; Create a function that executes the body of the macro
                                      :to-instructions-thunk (lambda ()
-                                                                (destructuring-bind ,',lambda-list (list ,@,args-sym)
-                                                                    ,'(progn ,@body)))))))))
+                                                                (values
+                                                                 (destructuring-bind ,',lambda-list (list ,@,args-sym)
+                                                                     ,'(progn ,@body))
+                                                                 nil)))))))) ; nil because it's a statement,
+                                                                             ; which evaluate to void
+

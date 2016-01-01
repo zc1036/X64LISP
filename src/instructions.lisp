@@ -10,10 +10,27 @@
 
 ;;; Superclass of all registers
 (defclass reg (instr-arg)
+  ((size :initarg :size
+         :reader reg.size)))
+
+;; A virtual register
+(defclass vreg (reg)
+  ((id :initarg :id
+       :reader vreg.id)))
+
+(defmethod instr-arg.repr ((r vreg))
+    (format nil "v~a" (vreg.id r)))
+
+(let ((next-vreg-id 0))
+    (defun new-vreg (size)
+        (make-instance 'vreg
+                       :id (incf next-vreg-id)
+                       :size size)))
+
+;; A general-purpose x64 register
+(defclass gpreg (reg ast-expr)
   ((name :initarg :name
          :reader reg.name)
-   (size :initarg :size
-         :reader reg.size)
    ;; ALIASES-OF is NIL if this register doesn't alias other
    ;; registers, or otherwise a list of the form
    ;;   (aliased-reg begin-alias-byte end-alias-byte)
@@ -23,8 +40,8 @@
              :reader reg.alias-of)
    (repr :initarg :name)))
 
-(defclass gpreg (reg ast-expr)
-  ())
+(defmethod ast-expr.to-instructions ((r gpreg))
+    (values nil r))
 
 (defmethod print-object ((x instr-arg) stream)
     (princ (instr-arg.repr x) stream))
@@ -35,7 +52,11 @@
                   (2 'uint16)
                   (4 'uint32)
                   (8 'uint64))))
-        `(defparameter ,name (make-instance 'gpreg :name ,repr :size ,size :type ,type :alias-of ,alias-of))))
+        `(defparameter ,name (make-instance 'gpreg
+                                            :name ,repr
+                                            :size ,size
+                                            :type ,type
+                                            :alias-of ,alias-of))))
 
 (defmacro make-gpregs (&rest lists)
     `(progn
@@ -53,7 +74,7 @@
          :reader instr.repr)
    (type :initform void)))
 
-(defmethod ast-expr.to-instructions ((x instr)) x)
+(defmethod ast-expr.to-instructions ((x instr)) (values x nil))
 
 (defmethod print-object ((x instr) stream)
     (princ (instr.repr x) stream))
@@ -94,16 +115,34 @@
 (defclass @mov (binary-op)
   ((name :initform "mov")))
 
-(defclass @label (nullary-op) ())
+(defclass @label (nullary-op)
+  ;; For making the assembly output more readable
+  ((comment :initarg :comment
+            :initform nil
+            :reader @label.comment)))
 
 (defmethod instr.repr ((x @label))
-    (format nil "~a:" (instr.name x)))
+    (with-slots (name comment) x
+        (if comment
+            (format nil "~a: ;# ~a" name comment)
+            (format nil "~a:" name))))
+
+(defmacro with-labels (label-specs &body body)
+    ;; The gensym below has to be evaluated at runtime, not
+    ;; compile-time, or else a function that uses WITH-LABELS multiple
+    ;; times will be getting the same label names.
+    `(let ,(mapcar (lambda (x) `(,(car x) (make-instance '@label :name (gensym) :comment ,(cadr x))))
+                   label-specs)
+         ,@body))
 
 (defclass @jmp (foc-op)
   ((name :initform "jmp")))
 
 (defclass @jne (foc-op)
   ((name :initform "jne")))
+
+(defclass @jz (foc-op)
+  ((name :initform "jz")))
 
 (defclass @tst (unary-op)
   ((name :initform "tst")))
@@ -167,3 +206,4 @@
 (make-instr-interface label @label name)
 (make-instr-interface jmp @jmp op)
 (make-instr-interface jne @jne op)
+(make-instr-interface jz @jz op)

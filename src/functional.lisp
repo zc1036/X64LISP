@@ -15,7 +15,7 @@
 (defun map-accum (init-state f list)
     (map-accum* init-state f list (list)))
 
-(defun id (&rest args) (apply #'values args))
+(defun id (&rest args) (values-list args))
 
 (defmacro bind (func &rest args)
     `(lambda (&rest restargs)
