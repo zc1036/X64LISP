@@ -13,19 +13,8 @@
   ((size :initarg :size
          :reader reg.size)))
 
-;; A virtual register
-(defclass vreg (reg)
-  ((id :initarg :id
-       :reader vreg.id)))
-
 (defmethod instr-arg.repr ((r vreg))
     (format nil "v~a" (vreg.id r)))
-
-(let ((next-vreg-id 0))
-    (defun new-vreg (size)
-        (make-instance 'vreg
-                       :id (incf next-vreg-id)
-                       :size size)))
 
 ;; A general-purpose x64 register
 (defclass gpreg (reg ast-expr)
@@ -38,10 +27,13 @@
    ;; 0 is the LSB and SIZE is the MSB
    (alias-of :initarg :alias-of
              :reader reg.alias-of)
-   (repr :initarg :name)))
+   (repr :initarg :name)
+   (type :initarg :type
+         :reader gpreg.type)))
 
 (defmethod ast-expr.to-instructions ((r gpreg))
-    (values nil r))
+    (make-instr-result :type (gpreg.type r)
+                       :reg r))
 
 (defmethod print-object ((x instr-arg) stream)
     (princ (instr-arg.repr x) stream))
@@ -74,7 +66,9 @@
          :reader instr.repr)
    (type :initform void)))
 
-(defmethod ast-expr.to-instructions ((x instr)) (values x nil))
+(defmethod ast-expr.to-instructions ((x instr))
+    (make-instr-result :instrs x
+                       :type void))
 
 (defmethod print-object ((x instr) stream)
     (princ (instr.repr x) stream))
@@ -156,7 +150,7 @@
              (make-instance (intern ,(symbol-name class) :instructions) ,@ctor-args))))
 
 ;;;
-;;; x86 registers and their 64-bit aliases
+;;; x64 registers and their aliases
 ;;;
 (make-gpregs
  ;; the "true" registers

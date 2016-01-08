@@ -59,18 +59,29 @@
 (defmacro proc (proc-name args &body body)
     (process-proc-decl proc-name args body))
 
-(defstatement while (condition &body body)
+(def-form while (condition &body body)
     (with-backtrace-guard (format nil "WHILE ~a" condition)
         (require-procedure :while)
 
-        (type-assert (ast-expr.type condition) 'int-type)
-
-        (multiple-value-bind (cond-instrs cond-reg) (ast-expr.to-instructions condition)
+        (with-slots ((cond-instrs instrs) (cond-type type) (cond-reg reg)) (ast-expr.to-instructions condition)
+            (type-assert cond-type 'int-type)
+            
             (with-labels ((!while-test "Test while condition") (!while-end "End while-loop"))
-                (list !while-test
-                      cond-instrs
-                      (tst cond-reg)
-                      (jz !while-end)
-                      (ast-expr.to-instructions body)
-                      (jmp !while-test)
-                      !while-end)))))
+                (values (list !while-test
+                              cond-instrs
+                              (tst cond-reg)
+                              (jz !while-end)
+                              (instr-result.instrs (ast-expr.to-instructions body))
+                              (jmp !while-test)
+                              !while-end)
+                        void
+                        nil)))))
+
+(def-generic-form +-op (int-type int-type))
+
+(def-generic-instance +-op ((x int-type) (y int-type))
+    (multiple-with-slots ((x-instrs instrs) (x-type type) (x-reg reg) (ast-expr.to-instructions x)
+                          (y-instrs instrs) (y-type type) (y-reg reg) (ast-expr.to-instructions y))
+        (make-instr-result :instrs (list x-instrs
+                                         y-instrs
+                                         (add )))))

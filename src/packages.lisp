@@ -14,7 +14,9 @@
            :destructuring-lambda
            :flatten
            :id
-           :compose))
+           :compose
+           :elet
+           :multiple-with-slots))
 
 (defpackage :x64lisp
   (:use :cl :macro-assist :functional :math)
@@ -92,11 +94,13 @@
                 :void
                 :integral-types
                 :int-type.lisp-typespec
-                :asm-type-error)
+                :asm-type-error
+                :btype.size)
   (:export :ast-expr
            :ast-expr.to-instructions
            :ast-expr.type
-           :defstatement))
+
+           :def-form))
 
 (defpackage :cfg
   (:use :cl :x64lisp :macro-assist))

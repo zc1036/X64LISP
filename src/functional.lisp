@@ -39,6 +39,11 @@
             (flatten (car resume) accum (cdr resume))
             (reverse accum))))
 
+;; Like Haskell's init function
+;; loop magic from http://stackoverflow.com/a/10636649/5451968
+(defun init (list)
+    (loop for x on list while (cdr x) collect (car x)))
+
 (defun compose* (funcs carry)
     (if funcs
         (let ((func (car funcs)))
@@ -49,3 +54,21 @@
 
 (defun compose (&rest funcs)
     (compose* funcs #'id))
+
+(defun elet* (bindings body)
+    (if (null bindings)
+        `(progn ,@body)
+        `(multiple-value-bind ,(init (car bindings)) ,(car (last (car bindings)))
+             ,(elet* (cdr bindings) body))))
+
+(defmacro elet (bindings &body body)
+    (elet* bindings body))
+
+(defun multiple-with-slots* (bindings body)
+    (if (null bindings)
+        `(progn ,@body)
+        `(with-slots ,(init (car bindings)) ,(car (last (car bindings)))
+             ,(multiple-with-slots* (cdr bindings) body))))
+
+(defmacro multiple-with-slots (bindings &body body)
+    (multiple-with-slots* bindings body))
