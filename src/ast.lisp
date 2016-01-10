@@ -8,9 +8,9 @@
 
 (defstruct (instr-result (:conc-name :instr-result.))
   "A structure resulting from call to AST-EXPR.TO-INSTRUCTIONS"
-  (instrs nil :type (or instructions:instr list) :read-only t)
+  (instrs nil :read-only t)
   (type nil :type btype :read-only t)
-  (reg nil :type instructions:reg :read-only t))
+  (reg nil :read-only t))
 
 (defgeneric ast-expr.to-instructions (ast-expr)
     (:documentation

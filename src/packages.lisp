@@ -18,43 +18,28 @@
            :elet
            :multiple-with-slots))
 
-(defpackage :x64lisp
-  (:use :cl :macro-assist :functional :math)
-  (:export :require-toplevel
-           :require-toplevel-module
-           :require-procedure
-
-           :asm-proc
-           :asm-proc.push-instr
-           :asm-proc.instrs
-
-           :asm-module
-           :asm-module.procs
-           :asm-module.name
+(defpackage :conditions
+  (:use :cl :macro-assist)
+  (:export :assembly-error
+           :internal-compiler-error
+           :with-backtrace-guard
 
            :assembly-error
            :assembly-error.text
            :assembly-error.backtrace-reports
            :with-backtrace-guard
            :make-backtrace-report
-           :backtrace-report.form-name
-           :size-of-sizeless-type
-           :alignment-of-sizeless-type
-           :unexpected-toplevel-form
-           :unexpected-scoped-form
-
-           :*asm-modules*
-           :*current-module*
-           :*current-proc*
-           :*is-toplevel*
-
-           :load-files))
+           :backtrace-report.form-name))
 
 (defpackage :types
-  (:use :cl :macro-assist :functional :math :x64lisp)
-  (:export :btype.equalp
+  (:use :cl :macro-assist :functional :math :conditions)
+  (:export :btype
+           :btype.equalp
            :btype.alignment
            :btype.size
+
+           :size-of-sizeless-type
+           :alignment-of-sizeless-type
 
            :void-type
            :int-type
@@ -86,27 +71,35 @@
            :uint16
            :uint32
            :uint64
-           :integral-types))
+           :integral-types
+           :common-type))
 
 (defpackage :ast
   (:use :cl :macro-assist :functional)
   (:import-from :types
+                :btype
                 :void
                 :integral-types
                 :int-type.lisp-typespec
                 :asm-type-error
-                :btype.size)
+                :btype.size
+                :common-type)
   (:export :ast-expr
            :ast-expr.to-instructions
            :ast-expr.type
 
-           :def-form))
+           :def-form
+           :def-generic-form
+           :def-generic-instance
 
-(defpackage :cfg
-  (:use :cl :x64lisp :macro-assist))
+           :instr-result
+           :make-instr-result
+           :instr-result.instrs
+           :instr-result.type
+           :instr-result.reg))
 
 (defpackage :instructions
-  (:use :cl :macro-assist :ast)
+  (:use :cl :macro-assist :ast :conditions)
   (:import-from :types :void :uint8 :uint16 :uint32 :uint64)
   (:export :instr-arg
            :reg
@@ -134,10 +127,33 @@
            :%ah :%bh :%ch :%dh :%bph :%sph :%sih :%dih
            :%al :%bl :%cl :%dl :%bpl :%spl :%sil :%dil
 
-           :cli :add :mov :tst :label :jmp :jne :jz))
+           :def :cli :add :mov :tst :label :jmp :jne :jz))
+
+(defpackage core-structures
+  (:use :cl :conditions)
+  (:export :require-toplevel
+           :require-toplevel-module
+           :require-procedure
+
+           :asm-proc
+           :asm-proc.push-instr
+           :asm-proc.instrs
+
+           :asm-module
+           :asm-module.procs
+           :asm-module.name
+
+           :unexpected-toplevel-form
+           :unexpected-scoped-form
+
+           :*asm-modules*
+           :*current-module*
+           :*current-proc*
+           :*is-toplevel*))
 
 (defpackage :core-forms
-  (:use :cl :macro-assist :functional :x64lisp :types :ast :instructions)
+  (:use :cl :macro-assist :functional :core-structures
+        :conditions :types :ast :instructions)
   (:export :module
            :struct
            :proc
@@ -145,3 +161,7 @@
 
 (defpackage :x64lisp-user
   (:use :types :core-forms :instructions))
+
+(defpackage :x64lisp
+  (:use :cl :macro-assist :functional :conditions :math :core-structures)
+  (:export :load-files))

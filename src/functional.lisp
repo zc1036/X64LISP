@@ -40,7 +40,7 @@
             (reverse accum))))
 
 ;; Like Haskell's init function
-;; loop magic from http://stackoverflow.com/a/10636649/5451968
+;; LOOP incantation from http://stackoverflow.com/a/10636649/5451968
 (defun init (list)
     (loop for x on list while (cdr x) collect (car x)))
 

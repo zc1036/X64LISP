@@ -63,25 +63,28 @@
     (with-backtrace-guard (format nil "WHILE ~a" condition)
         (require-procedure :while)
 
-        (with-slots ((cond-instrs instrs) (cond-type type) (cond-reg reg)) (ast-expr.to-instructions condition)
+        (with-slots ((cond-instrs ast::instrs) (cond-type ast::type) (cond-reg ast::reg)) (ast-expr.to-instructions condition)
             (type-assert cond-type 'int-type)
             
             (with-labels ((!while-test "Test while condition") (!while-end "End while-loop"))
-                (values (list !while-test
-                              cond-instrs
-                              (tst cond-reg)
-                              (jz !while-end)
-                              (instr-result.instrs (ast-expr.to-instructions body))
-                              (jmp !while-test)
-                              !while-end)
-                        void
-                        nil)))))
+                (make-instr-result :instrs (list !while-test
+                                                 cond-instrs
+                                                 (tst cond-reg)
+                                                 (jz !while-end)
+                                                 (instr-result.instrs (ast-expr.to-instructions body))
+                                                 (jmp !while-test)
+                                                 !while-end)
+                                   :type void)))))
 
 (def-generic-form +-op (int-type int-type))
 
 (def-generic-instance +-op ((x int-type) (y int-type))
-    (multiple-with-slots ((x-instrs instrs) (x-type type) (x-reg reg) (ast-expr.to-instructions x)
-                          (y-instrs instrs) (y-type type) (y-reg reg) (ast-expr.to-instructions y))
-        (make-instr-result :instrs (list x-instrs
-                                         y-instrs
-                                         (add )))))
+    (multiple-with-slots (((x-instrs ast::instrs) (x-type ast::type) (x-reg ast::reg) (ast-expr.to-instructions x))
+                          ((y-instrs ast::instrs) (y-type ast::type) (y-reg ast::reg) (ast-expr.to-instructions y)))
+        (let* ((common-int-type (common-type x-type y-type))
+               (out-reg (new-vreg (btype.size common-int-type))))
+            (make-instr-result :instrs (list x-instrs
+                                             y-instrs
+                                             (def out-reg (add x-reg y-reg)))
+                               :type common-int-type
+                               :reg out-reg))))

@@ -14,70 +14,6 @@
 
 (in-package :x64lisp)
 
-(define-condition assembly-error (error)
-  ((text :initarg :text :reader assembly-error.text)
-   (backtrace-reports :initform nil
-                      :accessor assembly-error.backtrace-reports)))
-
-(defstruct (backtrace-report (:conc-name backtrace-report.))
-  form-name)
-
-(defmacro with-backtrace-guard (name &body body)
-    (with-gensyms (e-sym)
-        `(handler-case (progn ,@body)
-           (assembly-error (,e-sym)
-               ;; tack on our own backtrace info to the condition object
-               (push (make-backtrace-report :form-name ,name) (assembly-error.backtrace-reports ,e-sym))
-               ;; propagate the error upwards
-               (error ,e-sym)))))
-
-(define-condition size-of-sizeless-type (assembly-error)
-  ())
-
-(define-condition alignment-of-sizeless-type (assembly-error)
-  ())
-
-(defclass asm-module ()
-  ((procs :initarg :procs
-          :accessor asm-module.procs)
-   (name :initarg :name
-         :accessor asm-module.name)))
-
-(defclass asm-proc ()
-  ((instrs :accessor asm-proc.instrs)
-   (name :initarg :name
-         :reader asm-proc.name)
-   (thunk :initarg :thunk
-          :reader asm-proc.thunk)))
-
-(defparameter *asm-modules* nil)
-(defparameter *current-module* nil)
-(defparameter *current-proc* nil)
-(defparameter *is-toplevel* t)
-
-(define-condition unexpected-toplevel-form (assembly-error)
-  ())
-
-(define-condition unexpected-scoped-form (assembly-error)
-  ())
-
-(defun require-toplevel (construct-name)
-    (when (not *is-toplevel*)
-        (error 'unexpected-toplevel-form
-               :text (format nil "~a declarations are required to appear at global scope" construct-name))))
-
-(defun require-toplevel-module (construct-name)
-    (require-toplevel construct-name)
-
-    (when (not *current-module*)
-        (error 'unexpected-toplevel-form
-               :text (format nil "~a declarations must be preceded by a module declaration" construct-name))))
-
-(defun require-procedure (construct-name)
-    (unless (and (not *is-toplevel*) *current-proc*)
-        (error 'unexpected-scoped-form
-               :text (format nil "~a declarations are required to appear in procedure scope" construct-name))))
-
 (defun load-file (filename)
     (load filename))
 
@@ -87,8 +23,10 @@
              (load-file filename)
              (with-open-file (stream (concatenate 'string filename ".s") :direction :output :if-exists :supersede)
                  (loop for proc in (asm-module.procs *current-module*) do
-                      (with-slots (instrs name thunk) proc
-                          (setf instrs (flatten (funcall thunk)))
+                      (with-slots ((instrs core-structures::instrs)
+                                   (name core-structures::name)
+                                   (thunk core-structures::thunk)) proc
+                          (setf instrs (flatten (ast:instr-result.instrs (funcall thunk))))
 
                           (format t "Procedure ~a instructions:~%" name)
 

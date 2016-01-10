@@ -13,18 +13,29 @@
   ((size :initarg :size
          :reader reg.size)))
 
+;; A virtual register
+(defclass vreg (reg)
+  ((id :initarg :id
+       :reader vreg.id)))
+
 (defmethod instr-arg.repr ((r vreg))
     (format nil "v~a" (vreg.id r)))
+
+(let ((next-vreg-id 0))
+    (defun new-vreg (size)
+        (make-instance 'vreg
+                       :id (incf next-vreg-id)
+                       :size size)))
 
 ;; A general-purpose x64 register
 (defclass gpreg (reg ast-expr)
   ((name :initarg :name
          :reader reg.name)
-   ;; ALIASES-OF is NIL if this register doesn't alias other
-   ;; registers, or otherwise a list of the form
+   ;; ALIASES-OF is NIL if this register doesn't alias another
+   ;; register, or otherwise a list of the form
    ;;   (aliased-reg begin-alias-byte end-alias-byte)
    ;; begin-alias-byte and end-alias-byte form a half-open range where
-   ;; 0 is the LSB and SIZE is the MSB
+   ;; 0 is the LSB and SIZE - 1 is the MSB
    (alias-of :initarg :alias-of
              :reader reg.alias-of)
    (repr :initarg :name)
@@ -98,6 +109,16 @@
 
 (defmethod instr.repr ((x binary-op))
     (format nil "~a ~a, ~a" (instr.name x) (binary-op.dst x) (binary-op.src x)))
+
+;; A special instruction that indicates that the destination is a
+;; register whose contents is defined as the result of the second
+;; operation; the second operation is regarded as though it evaluates
+;; to its computation rather than modifying an argument.  For example,
+;; (ADD V1 V2) would normally add V1 and V2 and store the result into
+;; V1, but (DEF V3 (ADD V1 V2)) is treated as though V1 and V2 are
+;; added and the result is stored in V3.
+(defclass regdef (binary-op)
+  ((name :initform "def")))
 
 (defclass @cli (nullary-op)
   ((name :initform "cli")
@@ -196,6 +217,7 @@
 (make-instr-interface add @add dst src)
 (make-instr-interface mov @mov dst src)
 (make-instr-interface tst @tst op)
+(make-instr-interface def regdef dst src)
 
 (make-instr-interface label @label name)
 (make-instr-interface jmp @jmp op)

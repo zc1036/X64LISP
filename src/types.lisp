@@ -8,6 +8,12 @@
   ((size :reader btype.size)
    (alignment :reader btype.alignment)))
 
+(define-condition size-of-sizeless-type (assembly-error)
+  ())
+
+(define-condition alignment-of-sizeless-type (assembly-error)
+  ())
+
 (defgeneric btype.equalp (btype btype)
     (:documentation "Compares two BTYPEs for equality"))
 
@@ -164,3 +170,18 @@
   (list int8 int16 int32 int64 uint8 uint16 uint32 uint64))
 
 (defparameter void (make-instance 'void-type))
+
+(let ((int-type-table (make-array '(4 4)
+                                  :initial-contents
+                                  (list (list uint8 uint16 uint32 uint64)
+                                        (list uint16 uint16 uint32 uint64)
+                                        (list uint32 uint32 uint32 uint64)
+                                        (list uint64 uint64 uint64 uint64)))))
+    (defun common-type (x y)
+        (cond
+            ((and (typep x 'int-type) (typep y 'int-type))
+             (aref int-type-table (round (log (btype.size x) 2))
+                   (round (log (btype.size y) 2))))
+            (t (error 'assembly-error
+                      :text (format nil "Cannot find common type of ~a and ~a (types ~a and ~a)"
+                                    x y (type-of x) (type-of y)))))))
