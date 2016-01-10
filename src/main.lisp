@@ -9,7 +9,7 @@
 (require :asdf)
 
 (asdf:load-system :unix-opts)
-(asdf:load-system :x64lisp)
+(asdf:operate 'asdf:load-source-op :x64lisp)
 
 (opts:define-opts)
 

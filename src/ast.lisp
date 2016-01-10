@@ -99,11 +99,15 @@ VOID."))
                      `(make-instance
                        ,'',class-name
                        :to-instructions-thunk (lambda ()
+                                                         ;; first, we turn the args into instructions
                                                   (let* ((,evald-args-sym (mapcar #'ast-expr.to-instructions
                                                                                   (list ,@,args-sym)))
+                                                         ;; then we call the generic with the types of the 
+                                                         ;; args to get the body defined with DEF-GENERIC-INSTANCE
                                                          (,method-sym (apply ,'#',generic-name
                                                                              (mapcar #'instr-result.type
                                                                                      ,evald-args-sym))))
+                                                      ;; and finally we invoke that body
                                                       (assert (typep ,method-sym 'function))
                                                       (apply ,method-sym ,evald-args-sym)))))))))
 
