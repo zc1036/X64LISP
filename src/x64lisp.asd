@@ -16,4 +16,5 @@
                  (:file "instructions")
                  (:file "core-structures")
                  (:file "core-forms")
+                 (:file "operator-nicknames")
                  (:file "x64lisp")))

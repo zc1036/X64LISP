@@ -85,20 +85,25 @@ VOID."))
 (defmacro def-generic-form (name arg-list)
     (let ((class-name (make-generic-form-class-name name))
           (generic-name (make-generic-form-generic-name name))
-          (args-sym (gensym)))
+          (args-sym (gensym))
+          (instr-sym (gensym)))
         `(progn
              (defclass ,class-name (ast-expr)
                ((to-instructions-thunk :initarg :to-instructions-thunk
                                        :reader generic-form.to-instructions-thunk)))
+             (defmethod ast-expr.to-instructions ((,instr-sym ,class-name))
+                 (funcall (generic-form.to-instructions-thunk ,instr-sym)))
              (defgeneric ,generic-name ,arg-list)
              (defmacro ,name (&rest ,args-sym)
                  (with-gensyms (evald-args-sym method-sym)
                      `(make-instance
                        ,'',class-name
                        :to-instructions-thunk (lambda ()
-                                                  (let* ((,evald-args-sym (list ,@,args-sym))
+                                                  (let* ((,evald-args-sym (mapcar #'ast-expr.to-instructions
+                                                                                  (list ,@,args-sym)))
                                                          (,method-sym (apply ,'#',generic-name
-                                                                             (mapcar #'ast-expr.type ,evald-args-sym))))
+                                                                             (mapcar #'instr-result.type
+                                                                                     ,evald-args-sym))))
                                                       (assert (typep ,method-sym 'function))
                                                       (apply ,method-sym ,evald-args-sym)))))))))
 

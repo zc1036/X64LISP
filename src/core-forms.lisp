@@ -76,11 +76,11 @@
                                                  !while-end)
                                    :type void)))))
 
-(def-generic-form +-op (int-type int-type))
+(def-generic-form binary-op+ (int-type int-type))
 
-(def-generic-instance +-op ((x int-type) (y int-type))
-    (multiple-with-slots (((x-instrs ast::instrs) (x-type ast::type) (x-reg ast::reg) (ast-expr.to-instructions x))
-                          ((y-instrs ast::instrs) (y-type ast::type) (y-reg ast::reg) (ast-expr.to-instructions y)))
+(def-generic-instance binary-op+ ((x int-type) (y int-type))
+    (multiple-with-slots (((x-instrs ast::instrs) (x-type ast::type) (x-reg ast::reg) x)
+                          ((y-instrs ast::instrs) (y-type ast::type) (y-reg ast::reg) y))
         (let* ((common-int-type (common-type x-type y-type))
                (out-reg (new-vreg (btype.size common-int-type))))
             (make-instr-result :instrs (list x-instrs
@@ -88,3 +88,16 @@
                                              (def out-reg (add x-reg y-reg)))
                                :type common-int-type
                                :reg out-reg))))
+
+(defun operator+-impl (args accum)
+    (declare (optimize (debug 1) (safety 1) (speed 3)))
+
+    (if args
+        (operator+-impl (cdr args) (binary-op+ accum (car args)))
+        accum))
+
+(defun operator+ (&rest args)
+    (unless args
+        (error 'assembly-error :text "Too few arguments to + operator"))
+
+    (operator+-impl (cdr args) (car args)))

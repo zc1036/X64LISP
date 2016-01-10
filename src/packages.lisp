@@ -157,10 +157,23 @@
   (:export :module
            :struct
            :proc
-           :while))
+           :while
+
+           :binary-op+
+           :operator+))
+
+(defpackage :operator-nicknames
+  (:use :cl :macro-assist)
+  (:shadow :+)
+  (:export :+))
 
 (defpackage :x64lisp-user
-  (:use :types :core-forms :instructions))
+  (:use :types :instructions :operator-nicknames)
+  (:import-from :core-forms
+                :module
+                :struct
+                :proc
+                :while))
 
 (defpackage :x64lisp
   (:use :cl :macro-assist :functional :conditions :math :core-structures)
