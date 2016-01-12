@@ -85,11 +85,18 @@
     (and (= (array-type.element-count x) (array-type.element-count y))
          (btype.equalp (array-type.element-type x) (array-type.element-type y))))
 
+(defstruct (struct-field-info :conc-name struct-field-info.)
+  name type)
+
+(defun struct-field-info= (a b)
+    (eq (struct-field-info.name a) (struct-field-info.name b)))
+
 (defclass struct-type (btype)
   ((fields :initarg :fields
            :reader struct-type.fields)
    (name :initarg :name
-         :reader struct-type.name)))
+         :reader struct-type.name)
+   (field-offsets)))
 
 (defmethod btype.equalp ((x struct-type) (y struct-type))
     (eq x y))
@@ -97,16 +104,42 @@
 (defmethod btype.alignment ((s struct-type))
     (apply #'lcm (map 'list #'btype.alignment (struct-type.fields s))))
 
-;;; Returns the size of the struct and a list of field offsets
+;;; Returns the size of the struct and a list of field offsets (memoized)
 (defun struct-type.size-and-field-offsets (s)
-    (multiple-value-bind (size offsets) (map-accum 0
-                                       (lambda (current-offset field)
-                                           (let ((aligned-offset (ceil-to-nearest-multiple current-offset (btype.alignment field))))
-                                               (values (+ aligned-offset (btype.size field)) aligned-offset)))
-                                       (struct-type.fields s))
-        (values
-         (ceil-to-nearest-multiple size (btype.alignment s))
-         offsets)))
+    (if (slot-boundp s 'field-offsets)
+        (values (slot-value s 'size) (slot-value s 'field-offsets))
+        (multiple-value-bind (size offsets) (map-accum 0
+                                                       (lambda (current-offset field)
+                                                           (let ((aligned-offset (ceil-to-nearest-multiple current-offset (btype.alignment field))))
+                                                               (values (+ aligned-offset (btype.size field)) aligned-offset)))
+                                                       (struct-type.fields s))
+            (setf (slot-value s 'size) (ceil-to-nearest-multiple size (btype.alignment s)))
+            (setf (slot-value s 'field-offsets offsets))
+            (struct-type.size-and-field-offsets s))))
+
+(define-condition nonexistent-struct-field (assembly-error)
+  (field-name :initarg :field-name
+              :reader nonexistent-struct-field.field-name))
+
+(defmethod assembly-error.text ((x nonexistent-struct-field))
+    (format nil "Nonexistent struct field name '~a'" (nonexistent-struct-field.field-name x)))
+
+(defun struct-type.field-offset (s member)
+    (unless (typep member 'symbol)
+        (error 'assembly-error :text "Struct member must be a symbol"))
+
+    (multiple-value-bind (size offsets) (struct-type.size-and-field-offsets)
+        (declare (ignore size))
+        (let ((field-position (position member (struct-type.fields s))))
+            (unless field-position
+                (error 'nonexistent-struct-field :field-name member))
+            (elt offsets field-position))))
+
+(defun struct-type.field (s field-name)
+    (let ((field-info (find field-name (struct-type.fields s) :test #'struct-field-info=)))
+        (unless field-info
+            (error 'nonexistent-struct-field :field-name field-name))
+        field-info))
 
 (defmethod btype.size ((s struct-type))
     ;; get rid of the second return value of

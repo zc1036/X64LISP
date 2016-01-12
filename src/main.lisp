@@ -24,6 +24,7 @@
 (multiple-value-bind (opts args) (opts:get-opts)
     (declare (ignore opts))
 
-    (let ((*package* (find-package :x64lisp-user)))
+    (let ((*package* (find-package :x64lisp-user))
+          (*readtable* source-readtable:readtable))
         (handler-case (x64lisp:load-files args)
           (conditions:assembly-error (e) (print-error e)))))

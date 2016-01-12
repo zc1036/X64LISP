@@ -11,6 +11,7 @@
                  (:file "functional")
                  (:file "math")
                  (:file "conditions")
+                 (:file "source-readtable")
                  (:file "types")
                  (:file "ast")
                  (:file "instructions")

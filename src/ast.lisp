@@ -82,7 +82,7 @@ VOID."))
     (intern (concatenate 'string "GENERIC-FORM-FUNC." (symbol-name symbol))
             (symbol-package symbol)))
 
-(defmacro def-generic-form (name arg-list)
+(defmacro def-generic-expr (name arg-list)
     (let ((class-name (make-generic-form-class-name name))
           (generic-name (make-generic-form-generic-name name))
           (args-sym (gensym))
@@ -98,20 +98,22 @@ VOID."))
                  (with-gensyms (evald-args-sym method-sym)
                      `(make-instance
                        ,'',class-name
-                       :to-instructions-thunk (lambda ()
-                                                         ;; first, we turn the args into instructions
-                                                  (let* ((,evald-args-sym (mapcar #'ast-expr.to-instructions
-                                                                                  (list ,@,args-sym)))
-                                                         ;; then we call the generic with the types of the 
-                                                         ;; args to get the body defined with DEF-GENERIC-INSTANCE
-                                                         (,method-sym (apply ,'#',generic-name
-                                                                             (mapcar #'instr-result.type
-                                                                                     ,evald-args-sym))))
-                                                      ;; and finally we invoke that body
-                                                      (assert (typep ,method-sym 'function))
-                                                      (apply ,method-sym ,evald-args-sym)))))))))
+                       :to-instructions-thunk
+                       (lambda ()
+                           (with-backtrace-guard ,,(symbol-name name)
+                               ;; first, we turn the args into instructions
+                               (let* ((,evald-args-sym (mapcar #'ast-expr.to-instructions
+                                                               (list ,@,args-sym)))
+                                      ;; then we call the generic with the types of the 
+                                      ;; args to get the body defined with DEF-GENERIC-INSTANCE
+                                      (,method-sym (apply ,'#',generic-name
+                                                          (mapcar #'instr-result.type
+                                                                  ,evald-args-sym))))
+                                   ;; and finally we invoke that body
+                                   (assert (typep ,method-sym 'function))
+                                   (apply ,method-sym ,evald-args-sym))))))))))
 
-(defmacro def-generic-instance (name arg-list &body body)
+(defmacro def-expr-instance (name arg-list &body body)
     (let ((generic-name (make-generic-form-generic-name name))
           (arg-names (mapcar (lambda (x) (etypecase x (cons (car x)) (atom x))) arg-list)))
         `(defmethod ,generic-name ,arg-list

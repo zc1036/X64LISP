@@ -31,6 +31,10 @@
            :make-backtrace-report
            :backtrace-report.form-name))
 
+(defpackage :source-readtable
+  (:use :cl)
+  (:export :readtable))
+
 (defpackage :types
   (:use :cl :macro-assist :functional :math :conditions)
   (:export :btype
@@ -40,6 +44,7 @@
 
            :size-of-sizeless-type
            :alignment-of-sizeless-type
+           :nonexistent-struct-field
 
            :void-type
            :int-type
@@ -49,10 +54,15 @@
            :array-type
            :array-type.element-type
            :array-type.element-count
+           :struct-field-info
+           :struct-field-info.name
+           :struct-field-info.type
+           :struct-field-info=
            :struct-type
            :struct-type.fields
            :struct-type.name
            :struct-type.size-and-field-offsets
+           :struct-type.field-offset
            :union-type
            :union-type.fields
            :proc-type
@@ -89,8 +99,8 @@
            :ast-expr.type
 
            :def-form
-           :def-generic-form
-           :def-generic-instance
+           :def-generic-expr
+           :def-expr-instance
 
            :instr-result
            :make-instr-result
@@ -160,7 +170,8 @@
            :while
 
            :binary-op+
-           :operator+))
+           :operator+
+           :member-access))
 
 (defpackage :operator-nicknames
   (:use :cl :macro-assist)

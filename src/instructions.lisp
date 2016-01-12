@@ -1,5 +1,5 @@
 
-;;;; Defines the instructions and structures that comprise an x64
+;;;; Defines the instructions and structures that comprise an x64lisp
 ;;;; assembly program
 
 (in-package :instructions)
@@ -113,12 +113,28 @@
 ;; A special instruction that indicates that the destination is a
 ;; register whose contents is defined as the result of the second
 ;; operation; the second operation is regarded as though it evaluates
-;; to its computation rather than modifying an argument.  For example,
+;; to its computation rather than modifying an argument. For example,
 ;; (ADD V1 V2) would normally add V1 and V2 and store the result into
 ;; V1, but (DEF V3 (ADD V1 V2)) is treated as though V1 and V2 are
 ;; added and the result is stored in V3.
-(defclass regdef (binary-op)
+(defclass @regdef (binary-op)
   ((name :initform "def")))
+
+;; High-level instruction to "slice" a register. Evaluates to a byte
+;; sequence that is (END - BEGIN) bytes long which are copies of the
+;; bytes in REG starting at byte BEGIN.
+(defclass @member-access (instr)
+  ((name :initform "mac")
+   (reg :initarg :reg
+        :reader @member-access.reg)
+   (begin :initarg :begin
+          :reader @member-access.begin)
+   (end :initarg :end
+        :reader @member-access.end)))
+
+(defmethod instr.repr ((x @member-access))
+    (with-slots (name reg begin end) x
+        (format nil "~a ~a[~a:~a]" name reg begin end)))
 
 (defclass @cli (nullary-op)
   ((name :initform "cli")
@@ -217,7 +233,8 @@
 (make-instr-interface add @add dst src)
 (make-instr-interface mov @mov dst src)
 (make-instr-interface tst @tst op)
-(make-instr-interface def regdef dst src)
+(make-instr-interface def @regdef dst src)
+(make-instr-interface mac @member-access reg begin end)
 
 (make-instr-interface label @label name)
 (make-instr-interface jmp @jmp op)
