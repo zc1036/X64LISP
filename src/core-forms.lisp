@@ -77,13 +77,13 @@
         (type-assert cond-type 'int-type)
         
         (with-labels ((!while-test "Test while condition") (!while-end "End while-loop"))
-            (make-instr-result :instrs (list !while-test
+            (make-instr-result :instrs (list (lbl !while-test)
                                              cond-instrs
                                              (tst cond-reg)
                                              (jz !while-end)
                                              (instr-result.instrs (ast-expr.to-instructions body))
                                              (jmp !while-test)
-                                             !while-end)
+                                             (lbl !while-end))
                                :type void))))
 
 (def-generic-expr binary-op+ (int-type int-type))
@@ -112,11 +112,16 @@
 
     (operator+-impl (cdr args) (car args)))
 
-(defun member-access (obj member)
+(def-form member-access (obj member)
     (with-slots ((instrs ast::instrs) (type ast::type) (reg ast::reg)) (ast-expr.to-instructions obj)
-        (let ((field-type (struct-field-info.type (struct-type.field type member)))
-              (field-offset (struct-type.field-offset obj member)))
-            (mac reg field-offset (+ field-offset (btype.size field-type))))))
+        (let* ((field-type (struct-field-info.type (struct-type.field type member)))
+               (field-offset (struct-type.field-offset obj member))
+               (out-reg (new-vreg (btype.size field-type))))
+            (make-instr-result :instrs (list instrs
+                                             (def out-reg (mac reg field-offset (+ field-offset
+                                                                                   (btype.size field-type)))))
+                               :type field-type
+                               :reg out-reg))))
 
 (defun process-member-access-list* (list accum)
     (declare (optimize (debug 3) (safety 3) (speed 2)))
@@ -137,4 +142,4 @@
 
     (process-member-access-list (read-delimited-list #\] stream t)))
 
-(set-macro-character #\[ #'read-member-access-list nil source-readtable:readtable)
+(set-macro-character #\[ #'read-member-access-list nil source-readtable:x64lisp-readtable)

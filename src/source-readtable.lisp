@@ -3,4 +3,4 @@
 
 (in-package :source-readtable)
 
-(defparameter readtable (copy-readtable nil))
+(defparameter x64lisp-readtable (copy-readtable nil))

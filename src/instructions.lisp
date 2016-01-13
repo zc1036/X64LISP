@@ -120,6 +120,9 @@
 (defclass @regdef (binary-op)
   ((name :initform "def")))
 
+(defmethod instr.repr ((x @regdef))
+    (format nil "~a := ~a" (binary-op.dst x) (binary-op.src x)))
+
 ;; High-level instruction to "slice" a register. Evaluates to a byte
 ;; sequence that is (END - BEGIN) bytes long which are copies of the
 ;; bytes in REG starting at byte BEGIN.
@@ -146,23 +149,30 @@
 (defclass @mov (binary-op)
   ((name :initform "mov")))
 
-(defclass @label (nullary-op)
+;; A label object
+(defclass @label (instr-arg)
   ;; For making the assembly output more readable
   ((comment :initarg :comment
             :initform nil
             :reader @label.comment)))
 
-(defmethod instr.repr ((x @label))
-    (with-slots (name comment) x
+;; The instruction to mark a particular location with a label
+(defclass @lbl (unary-op)
+  ((name :initform "lbl")))
+
+(defmethod instr.repr ((x @lbl))
+    (multiple-with-slots ((op x) (comment op))
         (if comment
-            (format nil "~a: ;# ~a" name comment)
-            (format nil "~a:" name))))
+            (format nil "~a: ;# ~a" op comment)
+            (format nil "~a:" op))))
 
 (defmacro with-labels (label-specs &body body)
     ;; The gensym below has to be evaluated at runtime, not
     ;; compile-time, or else a function that uses WITH-LABELS multiple
     ;; times will be getting the same label names.
-    `(let ,(mapcar (lambda (x) `(,(car x) (make-instance '@label :name (gensym) :comment ,(cadr x))))
+    `(let ,(mapcar (lambda (x) (etypecase x
+                                 (cons `(,(car x) (make-instance '@label :repr (gensym) :comment ,(cadr x))))
+                                 (atom `(,x (make-instance '@label :repr (gensym))))))
                    label-specs)
          ,@body))
 
@@ -236,7 +246,7 @@
 (make-instr-interface def @regdef dst src)
 (make-instr-interface mac @member-access reg begin end)
 
-(make-instr-interface label @label name)
+(make-instr-interface lbl @lbl op)
 (make-instr-interface jmp @jmp op)
 (make-instr-interface jne @jne op)
 (make-instr-interface jz @jz op)

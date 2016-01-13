@@ -33,7 +33,7 @@
 
 (defpackage :source-readtable
   (:use :cl)
-  (:export :readtable))
+  (:export :x64lisp-readtable))
 
 (defpackage :types
   (:use :cl :macro-assist :functional :math :conditions)
@@ -59,6 +59,7 @@
            :struct-field-info.type
            :struct-field-info=
            :struct-type
+           :struct-type.field
            :struct-type.fields
            :struct-type.name
            :struct-type.size-and-field-offsets
@@ -85,7 +86,7 @@
            :common-type))
 
 (defpackage :ast
-  (:use :cl :macro-assist :functional)
+  (:use :cl :macro-assist :functional :conditions)
   (:import-from :types
                 :btype
                 :void
@@ -109,7 +110,7 @@
            :instr-result.reg))
 
 (defpackage :instructions
-  (:use :cl :macro-assist :ast :conditions)
+  (:use :cl :macro-assist :functional :ast :conditions)
   (:import-from :types :void :uint8 :uint16 :uint32 :uint64)
   (:export :instr-arg
            :reg
@@ -137,7 +138,7 @@
            :%ah :%bh :%ch :%dh :%bph :%sph :%sih :%dih
            :%al :%bl :%cl :%dl :%bpl :%spl :%sil :%dil
 
-           :def :cli :add :mov :tst :label :jmp :jne :jz))
+           :def :cli :add :mov :tst :label :jmp :jne :jz :mac :lbl))
 
 (defpackage core-structures
   (:use :cl :conditions)

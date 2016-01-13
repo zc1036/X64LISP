@@ -8,5 +8,6 @@
     (while (+ 1 2 3)
         (+ 4 5))
 
-    (label 'foo)
-    (jne 'foo))
+    (with-labels (!foo)
+        (lbl !foo)
+        (jne !foo)))

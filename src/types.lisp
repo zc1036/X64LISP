@@ -85,7 +85,7 @@
     (and (= (array-type.element-count x) (array-type.element-count y))
          (btype.equalp (array-type.element-type x) (array-type.element-type y))))
 
-(defstruct (struct-field-info :conc-name struct-field-info.)
+(defstruct (struct-field-info (:conc-name struct-field-info.))
   name type)
 
 (defun struct-field-info= (a b)
@@ -114,12 +114,12 @@
                                                                (values (+ aligned-offset (btype.size field)) aligned-offset)))
                                                        (struct-type.fields s))
             (setf (slot-value s 'size) (ceil-to-nearest-multiple size (btype.alignment s)))
-            (setf (slot-value s 'field-offsets offsets))
+            (setf (slot-value s 'field-offsets) offsets)
             (struct-type.size-and-field-offsets s))))
 
 (define-condition nonexistent-struct-field (assembly-error)
-  (field-name :initarg :field-name
-              :reader nonexistent-struct-field.field-name))
+  ((field-name :initarg :field-name
+                :reader nonexistent-struct-field.field-name)))
 
 (defmethod assembly-error.text ((x nonexistent-struct-field))
     (format nil "Nonexistent struct field name '~a'" (nonexistent-struct-field.field-name x)))
@@ -128,7 +128,7 @@
     (unless (typep member 'symbol)
         (error 'assembly-error :text "Struct member must be a symbol"))
 
-    (multiple-value-bind (size offsets) (struct-type.size-and-field-offsets)
+    (multiple-value-bind (size offsets) (struct-type.size-and-field-offsets s)
         (declare (ignore size))
         (let ((field-position (position member (struct-type.fields s))))
             (unless field-position
