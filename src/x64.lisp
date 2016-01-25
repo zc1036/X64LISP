@@ -1,8 +1,7 @@
 
-;;;; Defines the instructions and structures that comprise an x64lisp
-;;;; assembly program
+;;;; Defines the instructions and structures related to x64 assembly
 
-(in-package :instructions)
+(in-package :x64)
 
 (defclass instr-arg ()
   ((repr :initarg :repr
@@ -13,22 +12,8 @@
   ((size :initarg :size
          :reader reg.size)))
 
-;; A virtual register
-(defclass vreg (reg)
-  ((id :initarg :id
-       :reader vreg.id)))
-
-(defmethod instr-arg.repr ((r vreg))
-    (format nil "v~a" (vreg.id r)))
-
-(let ((next-vreg-id 0))
-    (defun new-vreg (size)
-        (make-instance 'vreg
-                       :id (incf next-vreg-id)
-                       :size size)))
-
 ;; A general-purpose x64 register
-(defclass gpreg (reg ast-expr)
+(defclass gpreg (reg)
   ((name :initarg :name
          :reader reg.name)
    ;; ALIASES-OF is NIL if this register doesn't alias another
@@ -41,10 +26,6 @@
    (repr :initarg :name)
    (type :initarg :type
          :reader gpreg.type)))
-
-(defmethod ast-expr.to-instructions ((r gpreg))
-    (make-instr-result :type (gpreg.type r)
-                       :reg r))
 
 (defmethod print-object ((x instr-arg) stream)
     (princ (instr-arg.repr x) stream))
@@ -77,10 +58,6 @@
          :reader instr.repr)
    (type :initform void)))
 
-(defmethod ast-expr.to-instructions ((x instr))
-    (make-instr-result :instrs x
-                       :type void))
-
 (defmethod print-object ((x instr) stream)
     (princ (instr.repr x) stream))
 
@@ -110,35 +87,6 @@
 (defmethod instr.repr ((x binary-op))
     (format nil "~a ~a, ~a" (instr.name x) (binary-op.dst x) (binary-op.src x)))
 
-;; A special instruction that indicates that the destination is a
-;; register whose contents is defined as the result of the second
-;; operation; the second operation is regarded as though it evaluates
-;; to its computation rather than modifying an argument. For example,
-;; (ADD V1 V2) would normally add V1 and V2 and store the result into
-;; V1, but (DEF V3 (ADD V1 V2)) is treated as though V1 and V2 are
-;; added and the result is stored in V3.
-(defclass @regdef (binary-op)
-  ((name :initform "def")))
-
-(defmethod instr.repr ((x @regdef))
-    (format nil "~a := ~a" (binary-op.dst x) (binary-op.src x)))
-
-;; High-level instruction to "slice" a register. Evaluates to a byte
-;; sequence that is (END - BEGIN) bytes long which are copies of the
-;; bytes in REG starting at byte BEGIN.
-(defclass @member-access (instr)
-  ((name :initform "mac")
-   (reg :initarg :reg
-        :reader @member-access.reg)
-   (begin :initarg :begin
-          :reader @member-access.begin)
-   (end :initarg :end
-        :reader @member-access.end)))
-
-(defmethod instr.repr ((x @member-access))
-    (with-slots (name reg begin end) x
-        (format nil "~a ~a[~a:~a]" name reg begin end)))
-
 (defclass @cli (nullary-op)
   ((name :initform "cli")
    (repr :initform "cli")))
@@ -165,16 +113,6 @@
         (if comment
             (format nil "~a: ;# ~a" op comment)
             (format nil "~a:" op))))
-
-(defmacro with-labels (label-specs &body body)
-    ;; The gensym below has to be evaluated at runtime, not
-    ;; compile-time, or else a function that uses WITH-LABELS multiple
-    ;; times will be getting the same label names.
-    `(let ,(mapcar (lambda (x) (etypecase x
-                                 (cons `(,(car x) (make-instance '@label :repr (gensym) :comment ,(cadr x))))
-                                 (atom `(,x (make-instance '@label :repr (gensym))))))
-                   label-specs)
-         ,@body))
 
 (defclass @jmp (foc-op)
   ((name :initform "jmp")))

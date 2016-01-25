@@ -7,13 +7,20 @@
   (:use :cl)
   (:export :ceil-to-nearest-multiple))
 
-(defpackage :functional
+(defpackage :data-structures
   (:use :cl :macro-assist)
+  (:export :list-builder
+           :list-builder.head
+           :list-builder.push-end
+           :list-builder.push-begin))
+
+(defpackage :functional
+  (:use :cl :macro-assist :data-structures)
   (:export :map-accum
            :bind
            :destructuring-lambda
            :flatten
-           :id
+           :multiple-value-identity
            :compose
            :elet
            :multiple-with-slots))
@@ -102,23 +109,31 @@
            :def-form
            :def-generic-expr
            :def-expr-instance
+           :def-expr-instance-before
 
            :instr-result
            :make-instr-result
            :instr-result.instrs
            :instr-result.type
-           :instr-result.reg))
+           :instr-result.reg
+           :instr-result.lvalue-p))
 
-(defpackage :instructions
+(defpackage :tac
+  (:use :cl :macro-assist :functional)
+  (:import-from :types :void)
+  (:export :vreg
+           :new-vreg
+
+           :with-labels
+
+           :$ :add :move :member-access :lbl :jump :j-not-equal :j-zero))
+
+(defpackage :x64
   (:use :cl :macro-assist :functional :ast :conditions)
   (:import-from :types :void :uint8 :uint16 :uint32 :uint64)
   (:export :instr-arg
            :reg
-           :vreg
-           :new-vreg
            :gpreg
-
-           :with-labels
 
            :%r0 :%r1 :%r2 :%r3 :%r4 :%r5 :%r6 :%r7 :%r8 :%r9 :%r10 :%r11 :%r12
            :%r13 :%r14 :%r15
@@ -162,9 +177,14 @@
            :*current-proc*
            :*is-toplevel*))
 
+(defpackage :core-conditions
+  (:use :cl :conditions)
+  (:export :assignment-to-non-lvalue
+           :malformed-struct-definition))
+
 (defpackage :core-forms
   (:use :cl :macro-assist :functional :core-structures
-        :conditions :types :ast :instructions)
+        :conditions :core-conditions :types :ast)
   (:export :module
            :struct
            :proc
@@ -172,15 +192,18 @@
 
            :binary-op+
            :operator+
-           :member-access))
+           :binary-op=
+           :operator=
+           :binary-member-access
+           :operator-member-access))
 
 (defpackage :operator-nicknames
   (:use :cl :macro-assist)
-  (:shadow :+)
-  (:export :+))
+  (:shadow :+ :=)
+  (:export :+ :=))
 
 (defpackage :x64lisp-user
-  (:use :types :instructions :operator-nicknames)
+  (:use :types :operator-nicknames)
   (:import-from :core-forms
                 :module
                 :struct

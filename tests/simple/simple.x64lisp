@@ -2,12 +2,13 @@
 (module foo)
 
 (proc blah ()
-    (cli)
-    (add %r4 %r1)
+;    (cli)
+;    (add %r4 %r1)
 
     (while (+ 1 2 3)
         (+ 4 5))
 
-    (with-labels (!foo)
-        (lbl !foo)
-        (jne !foo)))
+;    (with-labels (!foo)
+;        (lbl !foo)
+;        (jne !foo))
+        )

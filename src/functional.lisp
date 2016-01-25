@@ -15,7 +15,7 @@
 (defun map-accum (init-state f list)
     (map-accum* init-state f list (list)))
 
-(defun id (&rest args) (values-list args))
+(defun multiple-value-identity (&rest args) (values-list args))
 
 (defmacro bind (func &rest args)
     `(lambda (&rest restargs)
@@ -53,7 +53,7 @@
         carry))
 
 (defun compose (&rest funcs)
-    (compose* funcs #'id))
+    (compose* funcs #'multiple-value-identity))
 
 (defun elet* (bindings body)
     (if (null bindings)
@@ -72,3 +72,15 @@
 
 (defmacro multiple-with-slots (bindings &body body)
     (multiple-with-slots* bindings body))
+
+(defun progall* (body accum-sym)
+    (if body
+        `((list-builder.push-end ,accum-sym ,(car body))
+          ,@(progall* (cdr body) accum-sym))
+        `((list-builder.head ,accum-sym))))
+
+;; Like PROGN but returns a list of all evaluation results
+(defmacro progall (&body body)
+    (with-gensyms (accum-sym)
+        `(let ((,accum-sym (make-list-builder)))
+             ,@(progall* body accum-sym))))

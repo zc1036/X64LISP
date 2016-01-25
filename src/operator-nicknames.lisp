@@ -10,3 +10,4 @@
              (apply #',forward-to ,args-sym))))
 
 (define-forwarding-function + core-forms:operator+)
+(define-forwarding-function = core-forms:operator=)

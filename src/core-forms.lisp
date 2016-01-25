@@ -3,9 +3,6 @@
 
 (in-package :core-forms)
 
-(define-condition malformed-struct-definition (assembly-error)
-  ())
-
 (defmethod assembly-error.text ((s malformed-struct-definition))
     (format nil "Malformed struct defintion: ~a" (slot-value s 'conditions::text)))
 
@@ -65,6 +62,22 @@
 (defmacro struct (struct-name &body field-decls)
     (process-struct-decl struct-name field-decls))
 
+(defun make-struct (struct &rest args)
+    (unless (typep struct 'struct-type)
+        (error 'assembly-error :text (format nil "~a is not a struct" struct)))
+
+    (let ((struct-reg (tac:new-vreg (btype.size struct))))
+        (make-instr-result :instrs (tac:move struct-reg 0)
+                           :type struct
+                           :reg struct-reg)))
+
+(defun read-struct-literal (char stream)
+    (declare (ignore char))
+
+    (cons 'make-struct (read-delimited-list #\} stream t)))
+
+(set-macro-character #\{ #'read-struct-literal nil source-readtable:x64lisp-readtable)
+
 (defmacro proc (proc-name args &body body)
     (process-proc-decl proc-name args body))
 
@@ -76,70 +89,98 @@
                  (cond-reg ast::reg)) (ast-expr.to-instructions condition)
         (type-assert cond-type 'int-type)
         
-        (with-labels ((!while-test "Test while condition") (!while-end "End while-loop"))
-            (make-instr-result :instrs (list (lbl !while-test)
+        (tac:with-labels ((!while-test "Test while condition") (!while-end "End while-loop"))
+            (make-instr-result :instrs (list (tac:lbl !while-test)
                                              cond-instrs
-                                             (tst cond-reg)
-                                             (jz !while-end)
+                                             (tac:j-zero !while-end cond-reg)
                                              (instr-result.instrs (ast-expr.to-instructions body))
-                                             (jmp !while-test)
-                                             (lbl !while-end))
+                                             (tac:jump !while-test)
+                                             (tac:lbl !while-end))
                                :type void))))
 
-(def-generic-expr binary-op+ (int-type int-type))
+(defun invalid-unary-usage (arg)
+    (declare (ignore arg))
+    (error 'assembly-error
+           :text "Expected at least two arguments, got one"))
+
+(defmacro define-left-associative-nary-op (name binary-op unary-op)
+    `(eval-when (:compile-toplevel :load-toplevel :execute)
+         (labels ((op-impl (args accum &optional (unary-p t))
+                    (declare (optimize (debug 3) (safety 3) (speed 2)))
+
+                    (if args
+                        (op-impl (cdr args) (,binary-op accum (car args)) nil)
+                        (if unary-p (,unary-op accum) accum))))
+             (defun ,name (&rest args)
+                 (unless args
+                     (error 'assembly-error
+                            :text (format nil "Too few arguments to ~a; expected at least one" ',name)))
+                 (op-impl (cdr args) (car args))))))
+
+(defmacro define-right-associative-nary-op (name binary-op unary-op)
+    `(labels ((op-impl (first rest &optional (unary-p t))
+                  (declare (optimize (debug 3) (safety 3) (speed 2)))
+
+                  (if rest
+                      (,binary-op first (op-impl (car rest) (cdr rest) nil))
+                      (if unary-p (,unary-op first) first))))
+         (defun ,name (&rest args)
+             (unless args
+                 (error 'assembly-error
+                        :text (format nil "Too few arguments to ~a; expected at least one" ',name)))
+             (op-impl (car args) (cdr args)))))
+
+(def-generic-expr binary-op= (lhs rhs))
+
+(def-expr-instance-before binary-op= (x y)
+    (declare (ignore y))
+
+    (unless (instr-result.lvalue-p x)
+        (error 'assignment-to-non-lvalue :text "Assignment to non-lvalue")))
+
+(def-expr-instance binary-op= ((x int-type) (y int-type))
+    (multiple-with-slots (((x-instrs ast::instrs) (x-reg ast::reg) (x-type ast::type) x)
+                          ((y-instrs ast::instrs) (y-reg ast::reg) y))
+        (make-instr-result :instrs (list x-instrs
+                                         y-instrs
+                                         (tac:move x-reg y-reg))
+                           :type x-type
+                           :reg x-reg)))
+
+(define-right-associative-nary-op operator= binary-op= invalid-unary-usage)
+
+(def-generic-expr binary-op+ (lhs rhs))
 
 (def-expr-instance binary-op+ ((x int-type) (y int-type))
     (multiple-with-slots (((x-instrs ast::instrs) (x-type ast::type) (x-reg ast::reg) x)
                           ((y-instrs ast::instrs) (y-type ast::type) (y-reg ast::reg) y))
         (let* ((common-int-type (common-type x-type y-type))
-               (out-reg (new-vreg (btype.size common-int-type))))
+               (out-reg (tac:new-vreg (btype.size common-int-type))))
             (make-instr-result :instrs (list x-instrs
                                              y-instrs
-                                             (def out-reg (add x-reg y-reg)))
+                                             (tac:add out-reg x-reg y-reg))
                                :type common-int-type
                                :reg out-reg))))
 
-(defun operator+-impl (args accum)
-    (declare (optimize (debug 3) (safety 3) (speed 2)))
+(define-left-associative-nary-op operator+ binary-op+ identity)
 
-    (if args
-        (operator+-impl (cdr args) (binary-op+ accum (car args)))
-        accum))
-
-(defun operator+ (&rest args)
-    (unless args
-        (error 'assembly-error :text "Too few arguments to + operator"))
-
-    (operator+-impl (cdr args) (car args)))
-
-(def-form member-access (obj member)
+(def-form binary-member-access (obj member)
     (with-slots ((instrs ast::instrs) (type ast::type) (reg ast::reg)) (ast-expr.to-instructions obj)
         (let* ((field-type (struct-field-info.type (struct-type.field type member)))
                (field-offset (struct-type.field-offset obj member))
-               (out-reg (new-vreg (btype.size field-type))))
+               (out-reg (tac:new-vreg (btype.size field-type))))
             (make-instr-result :instrs (list instrs
-                                             (def out-reg (mac reg field-offset (+ field-offset
-                                                                                   (btype.size field-type)))))
+                                             (tac:member-access
+                                              out-reg reg field-offset (+ field-offset
+                                                                          (btype.size field-type))))
                                :type field-type
                                :reg out-reg))))
 
-(defun process-member-access-list* (list accum)
-    (declare (optimize (debug 3) (safety 3) (speed 2)))
-
-    (if list
-        (process-member-access-list* (cdr list) `(member-access ,accum ,(car list)))
-        accum))
-
-(defun process-member-access-list (list)
-    ;; Make sure the list has length of at least 2
-    (unless (and list (cdr list))
-        (error 'assembly-error :text "Malformed member access: expected at least two items"))
-
-    (process-member-access-list* (cddr list) `(member-access ,(car list) ,(cadr list))))
+(define-left-associative-nary-op operator-member-access binary-member-access invalid-unary-usage)
 
 (defun read-member-access-list (char stream)
     (declare (ignore char))
 
-    (process-member-access-list (read-delimited-list #\] stream t)))
+    (cons 'operator-member-access (read-delimited-list #\] stream t)))
 
 (set-macro-character #\[ #'read-member-access-list nil source-readtable:x64lisp-readtable)

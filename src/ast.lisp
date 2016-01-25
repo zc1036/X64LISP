@@ -8,9 +8,10 @@
 
 (defstruct (instr-result (:conc-name :instr-result.))
   "A structure resulting from call to AST-EXPR.TO-INSTRUCTIONS"
-  (instrs nil :read-only t)
+  (instrs nil :read-only t) ;; A list of TAC:INSTR
   (type nil :type btype :read-only t)
-  (reg nil :read-only t))
+  (reg nil :read-only t)
+  (lvalue-p nil :read-only t))
 
 (defgeneric ast-expr.to-instructions (ast-expr)
     (:documentation
@@ -35,8 +36,8 @@ VOID."))
 
 (defmethod ast-expr.to-instructions ((x integer))
     (let* ((int-type (integer-type x))
-           (reg (instructions:new-vreg (btype.size int-type))))
-        (make-instr-result :instrs (instructions:mov reg x)
+           (reg (tac:new-vreg (btype.size int-type))))
+        (make-instr-result :instrs (tac:move reg x)
                            :type int-type
                            :reg reg)))
 
@@ -113,9 +114,15 @@ VOID."))
                                    (assert (typep ,method-sym 'function))
                                    (apply ,method-sym ,evald-args-sym))))))))))
 
-(defmacro def-expr-instance (name arg-list &body body)
-    (let ((generic-name (make-generic-form-generic-name name))
-          (arg-names (mapcar (lambda (x) (etypecase x (cons (car x)) (atom x))) arg-list)))
-        `(defmethod ,generic-name ,arg-list
-             (lambda ,arg-names 
-                 ,@body))))
+;; POSITION can be an argument to DEFMETHOD (i.e. :before, :after, :around) or
+;; NIL in which case it's a normal method
+(defmacro define-def-generic-form (name &optional position)
+    `(defmacro ,name (name arg-list &body body)
+         (let ((generic-name (make-generic-form-generic-name name))
+               (arg-names (mapcar (lambda (x) (etypecase x (cons (car x)) (atom x))) arg-list)))
+             `(defmethod ,generic-name ,,@(if position (list position) nil) ,arg-list
+                         (lambda ,arg-names 
+                             ,@body)))))
+
+(define-def-generic-form def-expr-instance)
+(define-def-generic-form def-expr-instance-before :before)
