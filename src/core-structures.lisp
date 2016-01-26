@@ -21,12 +21,6 @@
 (defparameter *current-proc* nil)
 (defparameter *is-toplevel* t)
 
-(define-condition unexpected-toplevel-form (assembly-error)
-  ())
-
-(define-condition unexpected-scoped-form (assembly-error)
-  ())
-
 (defun require-toplevel (construct-name)
     (when (not *is-toplevel*)
         (error 'unexpected-toplevel-form

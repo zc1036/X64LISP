@@ -21,4 +21,5 @@
                  (:file "core-structures")
                  (:file "core-forms")
                  (:file "operator-nicknames")
-                 (:file "x64lisp")))
+                 (:file "x64lisp"))
+    :depends-on (:unix-opts :optima))

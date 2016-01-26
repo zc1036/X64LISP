@@ -84,3 +84,10 @@
     (with-gensyms (accum-sym)
         `(let ((,accum-sym (make-list-builder)))
              ,@(progall* body accum-sym))))
+
+(defmacro if-let (bindings then &optional else)
+    (let ((binding-names (mapcar #'car bindings)))
+        `(let ,bindings
+             (if (and ,@binding-names)
+                 ,then
+                 ,else))))

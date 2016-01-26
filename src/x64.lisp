@@ -132,7 +132,7 @@
     ;; the below MAPCAR takes a list (a b c) and turns it into (:a a :b b :c c)
     (let ((ctor-args (apply #'append (mapcar (lambda (x) (list (intern (symbol-name x) :keyword) x)) lambda-list))))
         `(defun ,name ,lambda-list
-             (make-instance (intern ,(symbol-name class) :instructions) ,@ctor-args))))
+             (make-instance (intern ,(symbol-name class) :x64) ,@ctor-args))))
 
 ;;;
 ;;; x64 registers and their aliases

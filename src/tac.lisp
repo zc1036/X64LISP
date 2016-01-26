@@ -127,7 +127,7 @@
   ((name :initform "add")))
 
 (defclass @move (side-effect-op)
-  ((name :initform "mov")
+  ((name :initform "move")
    (dst :initarg :dst
         :reader @move.dst)
    (src :initarg :src
@@ -135,7 +135,16 @@
 
 (defmethod instr.repr ((x @move))
     (with-slots (name dst src) x
-        (format nil "~a ~a, ~a" name dst src)))
+        (format nil "~a ~a <- ~a" name dst src)))
+
+(defclass @zero (side-effect-op)
+  ((name :initform "zero")
+   (dst :initarg :dst
+        :reader @zero.dst)))
+
+(defmethod instr.repr ((x @zero))
+    (with-slots (name dst) x
+        (format nil "~a ~a" name dst)))
 
 (defclass @jump (foc-op)
   ((name :initform "jump")))
@@ -157,6 +166,7 @@
 (make-instr-interface $ mem-ref address)
 (make-instr-interface add @add dst srcl srcr)
 (make-instr-interface move @move dst src)
+(make-instr-interface zero @zero dst)
 (make-instr-interface member-access @member-access dst reg begin end)
 
 (make-instr-interface lbl @label op)

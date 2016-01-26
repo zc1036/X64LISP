@@ -4,10 +4,11 @@
 
 (in-package :operator-nicknames)
 
-(defmacro define-forwarding-function (name forward-to)
+(defmacro define-forwarding-macro (name forward-to)
     (with-gensyms (args-sym)
-        `(defun ,name (&rest ,args-sym)
-             (apply #',forward-to ,args-sym))))
+        `(defmacro ,name (&rest ,args-sym)
+             (cons ',forward-to ,args-sym))))
 
-(define-forwarding-function + core-forms:operator+)
-(define-forwarding-function = core-forms:operator=)
+(define-forwarding-macro + core-forms:operator+)
+(define-forwarding-macro = core-forms:operator=)
+(define-forwarding-macro let core-forms:let-var)

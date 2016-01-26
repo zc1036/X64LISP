@@ -105,18 +105,22 @@
   (:export :ast-expr
            :ast-expr.to-instructions
            :ast-expr.type
+           :ast-expr.lvalue-p
+
+           :var
+           :var.type
+           :var.name
 
            :def-form
            :def-generic-expr
            :def-expr-instance
            :def-expr-instance-before
+           :+declared-type+
 
            :instr-result
            :make-instr-result
            :instr-result.instrs
-           :instr-result.type
-           :instr-result.reg
-           :instr-result.lvalue-p))
+           :instr-result.reg))
 
 (defpackage :tac
   (:use :cl :macro-assist :functional)
@@ -156,7 +160,7 @@
            :def :cli :add :mov :tst :label :jmp :jne :jz :mac :lbl))
 
 (defpackage core-structures
-  (:use :cl :conditions)
+  (:use :cl :conditions :ast :types)
   (:export :require-toplevel
            :require-toplevel-module
            :require-procedure
@@ -169,9 +173,6 @@
            :asm-module.procs
            :asm-module.name
 
-           :unexpected-toplevel-form
-           :unexpected-scoped-form
-
            :*asm-modules*
            :*current-module*
            :*current-proc*
@@ -180,15 +181,21 @@
 (defpackage :core-conditions
   (:use :cl :conditions)
   (:export :assignment-to-non-lvalue
-           :malformed-struct-definition))
+           :malformed-struct-definition
+           :malformed-let-binding
+
+           :unexpected-toplevel-form
+           :unexpected-scoped-form))
 
 (defpackage :core-forms
   (:use :cl :macro-assist :functional :core-structures
         :conditions :core-conditions :types :ast)
+  (:import-from :optima :match)
   (:export :module
            :struct
            :proc
            :while
+           :let-var
 
            :binary-op+
            :operator+
@@ -199,8 +206,8 @@
 
 (defpackage :operator-nicknames
   (:use :cl :macro-assist)
-  (:shadow :+ :=)
-  (:export :+ :=))
+  (:shadow :+ := :let)
+  (:export :+ := :let))
 
 (defpackage :x64lisp-user
   (:use :types :operator-nicknames)
