@@ -37,6 +37,9 @@
             :initform nil
             :reader @label.comment)))
 
+(defun make-label-name (&optional (hint "G"))
+    (gensym hint))
+
 ;;; The superclass of all instruction classes
 (defclass instr ()
   ((name :initarg :name
@@ -62,17 +65,27 @@
 (defmethod instr.repr ((x unary-op))
     (format nil "~a := ~a ~a" (output-op.dst x) (instr.name x) (unary-op.op x)))
 
+(defclass @ret (unary-op)
+  ((name :initform "ret")))
+
+(defclass @retz (side-effect-op)
+  ((repr :initform "retz")))
+
 ;; flow of control operator
 (defclass foc-op (instr)
   ((target :initarg :target
-            :reader foc-op.target)))
+           :reader foc-op.target)
+   (next-instr-implicit-target-p :initarg :next-instr-implicit-target-p
+                                 :reader foc-op.next-instr-implicit-target-p
+                                 :initform nil)))
 
 (defmethod instr.repr ((x foc-op))
     (format nil "~a ~a" (instr.name x) (foc-op.target x)))
 
 (defclass test-foc-op (foc-op)
   ((op :initarg :op
-       :reader foc-op.op)))
+       :reader foc-op.op)
+   (next-instr-implicit-target-p :initform t)))
 
 (defmethod instr.repr ((x test-foc-op))
     (format nil "~a ~a, ~a" (instr.name x) (foc-op.op x) (foc-op.target x)))
@@ -92,8 +105,8 @@
     ;; compile-time, or else a function that uses WITH-LABELS multiple
     ;; times will be getting the same label names.
     `(let ,(mapcar (lambda (x) (etypecase x
-                                 (cons `(,(car x) (make-instance 'label :repr (gensym) :comment ,(cadr x))))
-                                 (atom `(,x (make-instance 'label :repr (gensym))))))
+                                 (cons `(,(car x) (make-instance 'label :repr (make-label-name) :comment ,(cadr x))))
+                                 (atom `(,x (make-instance 'label :repr (make-label-name))))))
                    label-specs)
          ,@body))
 
@@ -173,3 +186,5 @@
 (make-instr-interface jump @jump target)
 (make-instr-interface j-not-equal @j-not-equal op target)
 (make-instr-interface j-zero @j-zero op target)
+(make-instr-interface ret @ret op)
+(make-instr-interface retz @retz)

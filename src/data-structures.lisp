@@ -22,3 +22,6 @@
         (setf head (cons item head))
         (unless tail
             (setf tail head))))
+
+(defun vector-push-extend-d (item v)
+    (vector-push-extend item v (length v)))

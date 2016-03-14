@@ -19,6 +19,7 @@
                  (:file "tac")
                  (:file "core-conditions")
                  (:file "core-structures")
+                 (:file "cfg")
                  (:file "core-forms")
                  (:file "operator-nicknames")
                  (:file "x64lisp"))

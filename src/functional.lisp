@@ -91,3 +91,23 @@
              (if (and ,@binding-names)
                  ,then
                  ,else))))
+
+(defun hash-table-keys (table)
+    (let ((values nil))
+        (with-hash-table-iterator (get-node table)
+            (loop
+               (multiple-value-bind (continue-p key value) (get-node)
+                   (declare (ignore value))
+                   (if continue-p
+                       (setf values (cons key values))
+                       (return values)))))))
+
+(defun hash-table-values (table)
+    (let ((values nil))
+        (with-hash-table-iterator (get-node table)
+            (loop
+               (multiple-value-bind (continue-p key value) (get-node)
+                   (declare (ignore key))
+                   (if continue-p
+                       (setf values (cons value values))
+                       (return values)))))))

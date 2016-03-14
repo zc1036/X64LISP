@@ -12,7 +12,9 @@
   (:export :list-builder
            :list-builder.head
            :list-builder.push-end
-           :list-builder.push-begin))
+           :list-builder.push-begin
+
+           :vector-push-extend-d))
 
 (defpackage :functional
   (:use :cl :macro-assist :data-structures)
@@ -23,7 +25,9 @@
            :multiple-value-identity
            :compose
            :elet
-           :multiple-with-slots))
+           :multiple-with-slots
+           :hash-table-values
+           :hash-table-keys))
 
 (defpackage :conditions
   (:use :cl :macro-assist)
@@ -129,8 +133,19 @@
            :new-vreg
 
            :with-labels
+           :make-label-name
 
-           :$ :add :move :member-access :lbl :jump :j-not-equal :j-zero))
+           :instr :instr.repr
+
+           :instr-arg :instr-arg.repr
+
+           :unary-op :unary-op.op
+
+           :foc-op :foc-op.target :foc-op.next-instr-implicit-target-p
+
+           :@label :@ret :@retz
+
+           :$ :add :move :member-access :lbl :jump :j-not-equal :j-zero :ret :retz))
 
 (defpackage :x64
   (:use :cl :macro-assist :functional :ast :conditions)
@@ -178,6 +193,15 @@
            :*current-proc*
            :*is-toplevel*))
 
+(defpackage :cfg
+  (:use :cl :macro-assist :functional :data-structures :tac :core-structures)
+  (:export :cfg-node
+           :cfg-node.instrs
+           :cfg-node.successors
+           :cfg-node.predecessors
+
+           :cfg-from-proc))
+
 (defpackage :core-conditions
   (:use :cl :conditions)
   (:export :assignment-to-non-lvalue
@@ -218,5 +242,5 @@
                 :while))
 
 (defpackage :x64lisp
-  (:use :cl :macro-assist :functional :conditions :math :core-structures)
+  (:use :cl :macro-assist :functional :conditions :math :core-structures :cfg)
   (:export :load-files))

@@ -69,7 +69,7 @@
 (def-expr-instance binary-op= ((x int-type) (y int-type))
     (progn
         (the t y) ;; ignore unused Y
-        (or (ast-expr.type x) y))
+        (ast-expr.type x))
 
     (multiple-with-slots (((x-instrs ast::instrs) (x-reg ast::reg) (ast-expr.to-instructions x))
                           ((y-instrs ast::instrs) (y-reg ast::reg) (ast-expr.to-instructions y)))
@@ -216,7 +216,7 @@
         (tac:with-labels ((!while-test "Test while condition") (!while-end "End while-loop"))
             (make-instr-result :instrs (list (tac:lbl !while-test)
                                              cond-instrs
-                                             (tac:j-zero !while-end cond-reg)
+                                             (tac:j-zero cond-reg !while-end)
                                              (instr-result.instrs (ast-expr.to-instructions body))
                                              (tac:jump !while-test)
                                              (tac:lbl !while-end))))))
